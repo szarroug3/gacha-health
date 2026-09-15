@@ -257,35 +257,51 @@ async function tallyPoints(channelId, message, botUserId) {
 
 const RANK_EMOJI = ['🥇', '🥈', '🥉'];
 
-// One field per channel (Discord lays these out as a grid of cards) ranked
-// by total, rather than a monospace table crammed into the description.
+// Standard "competition ranking": equal values share the same rank, and
+// the next distinct value skips ahead (1, 2, 2, 4 - not 1, 2, 2, 3).
+function rankRows(rows, key) {
+  const sorted = [...rows].sort((a, b) => b[key] - a[key] || a.channel.localeCompare(b.channel));
+
+  let rank = 0;
+  let prevValue = null;
+  return sorted.map((row, i) => {
+    if (row[key] !== prevValue) rank = i + 1;
+    prevValue = row[key];
+    return { ...row, rank };
+  });
+}
+
+function rankLabel(rank) {
+  return RANK_EMOJI[rank - 1] || `${rank}.`;
+}
+
+// A simple one-line-per-channel leaderboard list reads much easier than a
+// grid of cards, and makes shared ranks (ties) visually obvious.
 function buildResultsEmbed(rows, weekLabel) {
-  const sorted = [...rows].sort((a, b) => b.total - a.total || a.channel.localeCompare(b.channel));
+  const ranked = rankRows(rows, 'total');
+  const lines = ranked.map(
+    (r) => `${rankLabel(r.rank)} **${r.channel}** — **${r.total}** total (+${r.lastWeek} this week)`
+  );
 
   return {
     title: `📊 Results for ${weekLabel || 'last week'}`,
     color: 0x57f287,
-    fields: sorted.map((row, i) => ({
-      name: `${RANK_EMOJI[i] || '▫️'} ${row.channel}`,
-      value: `Last week: **${row.lastWeek}**\nTotal: **${row.total}**`,
-      inline: true,
-    })),
+    description: lines.join('\n'),
   };
 }
 
-// Same card-grid style as buildResultsEmbed, but for a totals-only
-// leaderboard (no "last week" figure to show).
+// Same leaderboard-list style as buildResultsEmbed, but for a totals-only
+// view (no "this week" figure to show).
 function buildTotalsEmbed(rows) {
-  const sorted = [...rows].sort((a, b) => b.total - a.total || a.channel.localeCompare(b.channel));
+  const ranked = rankRows(rows, 'total');
+  const lines = ranked.map(
+    (r) => `${rankLabel(r.rank)} **${r.channel}** — **${r.total}** ${pointsSuffix(r.total)}`
+  );
 
   return {
     title: '🏆 Current Totals',
     color: 0x57f287,
-    fields: sorted.map((row, i) => ({
-      name: `${RANK_EMOJI[i] || '▫️'} ${row.channel}`,
-      value: `Total: **${row.total}**`,
-      inline: true,
-    })),
+    description: lines.join('\n'),
   };
 }
 
