@@ -31,16 +31,20 @@ you can also adjust or check a total by hand from the **Actions** tab →
   reward). Fails instead of going negative if there aren't enough.
 - **Manual - add points** — adds points directly, outside the normal
   emoji scoring (e.g. a manual bonus or correction).
+- **Manual - transfer points** — moves points from one channel to
+  another. Fails instead of going negative if the source doesn't have
+  enough, and instead of a no-op if the two channels are the same.
 - **Manual - check total** — looks up a channel's current running total
   without changing anything.
 - **Manual - check all totals** — posts a leaderboard of every goal
   channel's current running total.
 
-Spend/add/total take a channel name (and spend/add also take an amount and
-an optional note); all four post a confirmation to `#bot`.
+Spend/add/transfer/total take a channel name (transfer takes a from/to
+pair instead) plus an amount where relevant, and an optional note; all
+five post a confirmation to `#bot`.
 
 They can also be run as real Discord slash commands (`/spend`, `/add`,
-`/total`, `/totals`) instead of from the Actions tab — see
+`/transfer`, `/total`, `/totals`) instead of from the Actions tab — see
 [Setting up slash commands](#setting-up-slash-commands) below. That part's
 optional; everything above works without it.
 
@@ -168,8 +172,9 @@ commit or discard changes to it afterward as appropriate.
 
 ## Setting up slash commands
 
-Optional. This makes `/spend`, `/add`, `/total`, and `/totals` work as
-real Discord slash commands instead of only from the Actions tab. It needs one small
+Optional. This makes `/spend`, `/add`, `/transfer`, `/total`, and
+`/totals` work as real Discord slash commands instead of only from the
+Actions tab. It needs one small
 extra piece: a [Cloudflare Worker](https://developers.cloudflare.com/workers/)
 (free, no card required, in [webhook/](webhook)) that receives the command
 from Discord and triggers the matching GitHub Actions workflow.
@@ -232,9 +237,9 @@ npm install
 npm run register-commands
 ```
 
-This registers `/spend`, `/add`, `/total`, `/totals` as guild commands
-(instant, rather than the up-to-an-hour delay for global commands) —
-they'll show up in the server right away.
+This registers `/spend`, `/add`, `/transfer`, `/total`, `/totals` as
+guild commands (instant, rather than the up-to-an-hour delay for global
+commands) — they'll show up in the server right away.
 
 ### Troubleshooting
 

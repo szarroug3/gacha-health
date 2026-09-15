@@ -10,6 +10,7 @@
     "seed": "node src/seed.js",
     "spend": "node src/spend.js",
     "add": "node src/add.js",
+    "transfer": "node src/transfer.js",
     "total": "node src/total.js",
     "totals": "node src/totals.js",
     "register-commands": "node scripts/register-commands.js"

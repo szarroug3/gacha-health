@@ -7,6 +7,7 @@ import { verifyKey, InteractionType, InteractionResponseType } from 'discord-int
 const COMMANDS = {
   spend: { workflow: 'spend.yml', options: ['channel', 'amount', 'note'] },
   add: { workflow: 'add.yml', options: ['channel', 'amount', 'note'] },
+  transfer: { workflow: 'transfer.yml', options: ['from', 'to', 'amount', 'note'] },
   total: { workflow: 'total.yml', options: ['channel'] },
   totals: { workflow: 'totals.yml', options: [] },
 };

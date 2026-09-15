@@ -146,6 +146,51 @@ async function spendPoints(channelName, amount, note, { skipChannelMessage = fal
   return { channel: channel.name, spent: amount, remaining: channelState.totalPoints };
 }
 
+// Moves points from one goal channel's running total to another. Throws if
+// either channel isn't found, they're the same channel, or the source
+// doesn't have enough.
+async function transferPoints(fromChannelName, toChannelName, amount, note, { skipChannelMessage = false } = {}) {
+  const { goalChannels, resultsChannel } = await getChannels();
+  const fromChannel = findGoalChannel(goalChannels, fromChannelName);
+  const toChannel = findGoalChannel(goalChannels, toChannelName);
+
+  if (fromChannel.id === toChannel.id) {
+    throw new Error("Can't transfer points to the same channel");
+  }
+
+  const state = loadState();
+  const fromState = state.channels[fromChannel.id] || {};
+  const toState = state.channels[toChannel.id] || {};
+  const fromTotal = fromState.totalPoints || 0;
+
+  if (amount > fromTotal) {
+    throw new Error(`#${fromChannel.name} only has ${fromTotal} points, can't transfer ${amount}`);
+  }
+
+  fromState.totalPoints = fromTotal - amount;
+  toState.totalPoints = (toState.totalPoints || 0) + amount;
+  state.channels[fromChannel.id] = fromState;
+  state.channels[toChannel.id] = toState;
+  saveState(state);
+
+  if (!skipChannelMessage) {
+    const noteText = note ? ` (${note})` : '';
+    await discord.sendMessage(
+      resultsChannel.id,
+      `**${fromChannel.name}** transferred **${amount}** ${pointsSuffix(amount)} to **${toChannel.name}**${noteText}. ` +
+        `${fromChannel.name}: **${fromState.totalPoints}**, ${toChannel.name}: **${toState.totalPoints}**.`
+    );
+  }
+
+  return {
+    from: fromChannel.name,
+    to: toChannel.name,
+    amount,
+    fromRemaining: fromState.totalPoints,
+    toTotal: toState.totalPoints,
+  };
+}
+
 // Adds points to a goal channel's running total directly (e.g. a manual
 // bonus award, or a correction). Not subject to the emoji scoring rules.
 async function addPoints(channelName, amount, note, { skipChannelMessage = false } = {}) {
@@ -313,5 +358,6 @@ module.exports = {
   seedTrackedMessages,
   spendPoints,
   addPoints,
+  transferPoints,
   getTotal,
 };
