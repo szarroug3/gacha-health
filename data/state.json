@@ -4,7 +4,7 @@
       "lastMessageId": "1549270972815908976",
       "weekLabel": "9/14-9/20",
       "totalPoints": 10,
-      "creditedMessageId": "1549270509982720053"
+      "creditedMessageId": "1549270972815908976"
     },
     "1549240615550587010": {
       "lastMessageId": "1549247698857758824",
@@ -14,23 +14,31 @@
       "lastMessageId": "1549270973583204415",
       "weekLabel": "9/14-9/20",
       "totalPoints": 6,
-      "creditedMessageId": "1549270511320571936"
+      "creditedMessageId": "1549270973583204415"
     },
     "1549270849205305474": {
       "lastMessageId": "1549270974644617298",
-      "weekLabel": "9/14-9/20"
+      "weekLabel": "9/14-9/20",
+      "totalPoints": 1,
+      "creditedMessageId": "1549270974644617298"
     },
     "1549270863428456509": {
       "lastMessageId": "1549270975575498824",
-      "weekLabel": "9/14-9/20"
+      "weekLabel": "9/14-9/20",
+      "totalPoints": 0,
+      "creditedMessageId": "1549270975575498824"
     },
     "1549270875466113154": {
       "lastMessageId": "1549270976825663510",
-      "weekLabel": "9/14-9/20"
+      "weekLabel": "9/14-9/20",
+      "totalPoints": 5,
+      "creditedMessageId": "1549270976825663510"
     },
     "1549270889017643078": {
       "lastMessageId": "1549270977840554078",
-      "weekLabel": "9/14-9/20"
+      "weekLabel": "9/14-9/20",
+      "totalPoints": 0,
+      "creditedMessageId": "1549270977840554078"
     }
   }
 }
