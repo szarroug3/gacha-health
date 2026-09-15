@@ -3,8 +3,7 @@ const { getWeekLabel } = require('./dateUtils');
 const { loadState, saveState } = require('./storage');
 const config = require('./config');
 
-async function runWeeklyJob(client) {
-  const guild = await client.guilds.fetch(config.guildId);
+async function getGoalChannels(guild) {
   await guild.channels.fetch();
 
   const category = guild.channels.cache.find(
@@ -16,10 +15,12 @@ async function runWeeklyJob(client) {
     throw new Error(`Category "${config.categoryName}" not found in guild`);
   }
 
-  const goalChannels = [...guild.channels.cache.values()]
+  return [...guild.channels.cache.values()]
     .filter((c) => c.parentId === category.id && c.type === ChannelType.GuildText)
     .sort((a, b) => a.position - b.position);
+}
 
+function getResultsChannel(guild) {
   const resultsChannel = guild.channels.cache.find(
     (c) =>
       c.type === ChannelType.GuildText &&
@@ -28,9 +29,38 @@ async function runWeeklyJob(client) {
   if (!resultsChannel) {
     throw new Error(`Results channel "#${config.resultsChannelName}" not found in guild`);
   }
+  return resultsChannel;
+}
+
+// Posts the new dated message (e.g. "9/13-9/19") to every goal channel and
+// starts tracking it as the message scoreLastWeek() should score next time.
+async function postWeeklyMessages(client) {
+  const guild = await client.guilds.fetch(config.guildId);
+  const goalChannels = await getGoalChannels(guild);
 
   const state = loadState();
   const newWeekLabel = getWeekLabel(config.timezone);
+
+  for (const channel of goalChannels) {
+    const newMessage = await channel.send(newWeekLabel);
+    state.channels[channel.id] = { lastMessageId: newMessage.id, weekLabel: newWeekLabel };
+  }
+
+  saveState(state);
+  return newWeekLabel;
+}
+
+// Scores the currently-tracked message in each goal channel and posts the
+// results table to the results channel. Does not touch state -
+// postWeeklyMessages() is what advances the tracked message to a new one.
+// Safe to run more than once (e.g. while testing): it just re-scores
+// whatever message is currently tracked.
+async function scoreLastWeek(client) {
+  const guild = await client.guilds.fetch(config.guildId);
+  const goalChannels = await getGoalChannels(guild);
+  const resultsChannel = getResultsChannel(guild);
+
+  const state = loadState();
   const resultsRows = [];
   let scoredWeekLabel = null;
 
@@ -40,8 +70,8 @@ async function runWeeklyJob(client) {
 
     if (channelState.lastMessageId) {
       try {
-        const prevMessage = await channel.messages.fetch(channelState.lastMessageId);
-        points = await tallyPoints(prevMessage, client.user.id);
+        const message = await channel.messages.fetch(channelState.lastMessageId);
+        points = await tallyPoints(message, client.user.id);
         scoredWeekLabel = channelState.weekLabel;
       } catch (err) {
         console.error(`Could not fetch/tally message for #${channel.name}: ${err.message}`);
@@ -49,14 +79,17 @@ async function runWeeklyJob(client) {
     }
 
     resultsRows.push({ channel: channel.name, points });
-
-    const newMessage = await channel.send(newWeekLabel);
-    state.channels[channel.id] = { lastMessageId: newMessage.id, weekLabel: newWeekLabel };
   }
 
-  saveState(state);
-
   await resultsChannel.send(formatResultsTable(resultsRows, scoredWeekLabel));
+  return resultsRows;
+}
+
+// Runs both steps in the right order: score the outgoing week, then post
+// the new one. Used by the "!goals run" manual command.
+async function runWeeklyJob(client) {
+  await scoreLastWeek(client);
+  await postWeeklyMessages(client);
 }
 
 // Sums points from every tracked-emoji reaction on the message, from any
@@ -102,4 +135,4 @@ function pad(str, len) {
   return str + ' '.repeat(Math.max(0, len - str.length));
 }
 
-module.exports = { runWeeklyJob };
+module.exports = { runWeeklyJob, postWeeklyMessages, scoreLastWeek };
