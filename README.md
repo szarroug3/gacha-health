@@ -10,14 +10,32 @@ Sunday (around 12:00 AM Central), it:
      `:6friday:` `:7saturday:` = 1 point each
    - `:Biggoal:` = 5 points
    - `:Weekly:` = 3 points
-   - Posts a results table to `#bot` with one row per channel (0 if nobody
-     reacted).
+   - Credits those points to that channel's running total (once per
+     message - re-scoring the same message never double-credits it), and
+     posts a results table to `#bot` with one row per channel showing
+     **Last Week** and **Total** (running balance).
 2. Posts a new message in each of those channels with the new week's date
    range (e.g. `9/13-9/19`), and starts tracking it for next week.
 
-State (which message to score next, per channel) lives in
-[data/state.json](data/state.json), which the workflow commits back to
-this repo after each run.
+State (which message to score next per channel, and each channel's
+running point total) lives in [data/state.json](data/state.json), which
+the workflow commits back to this repo after each run.
+
+### Managing points directly
+
+Points accumulate in each channel's running total from weekly scoring, but
+you can also adjust or check a total by hand from the **Actions** tab →
+**Run workflow**, fill in the inputs, and run:
+
+- **Manual - spend points** — deducts points (e.g. someone redeemed a
+  reward). Fails instead of going negative if there aren't enough.
+- **Manual - add points** — adds points directly, outside the normal
+  emoji scoring (e.g. a manual bonus or correction).
+- **Manual - check total** — looks up a channel's current running total
+  without changing anything.
+
+All three take a channel name (and spend/add also take an amount and an
+optional note), and post a confirmation to `#bot`.
 
 ## Setup
 

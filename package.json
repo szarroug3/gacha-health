@@ -7,7 +7,10 @@
     "post": "node src/post.js",
     "score": "node src/score.js",
     "run": "node src/run.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "spend": "node src/spend.js",
+    "add": "node src/add.js",
+    "total": "node src/total.js"
   },
   "engines": {
     "node": ">=20"

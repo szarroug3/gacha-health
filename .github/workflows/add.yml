@@ -1,0 +1,50 @@
+name: Manual - add points
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Goal channel name (e.g. batsy)'
+        required: true
+      amount:
+        description: 'Points to add'
+        required: true
+      note:
+        description: 'Optional note (e.g. why the bonus)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency: gacha-health-weekly
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run add
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          GUILD_ID: ${{ secrets.GUILD_ID }}
+          CATEGORY_NAME: ${{ vars.CATEGORY_NAME }}
+          RESULTS_CHANNEL_NAME: ${{ vars.RESULTS_CHANNEL_NAME }}
+          TIMEZONE: ${{ vars.TIMEZONE }}
+          ADD_CHANNEL: ${{ inputs.channel }}
+          ADD_AMOUNT: ${{ inputs.amount }}
+          ADD_NOTE: ${{ inputs.note }}
+
+      - name: Commit updated state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/state.json
+          git diff --cached --quiet || git commit -m "Add points for ${{ inputs.channel }} [skip ci]"
+          git push
