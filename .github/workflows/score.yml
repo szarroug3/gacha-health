@@ -27,3 +27,11 @@ jobs:
           CATEGORY_NAME: ${{ vars.CATEGORY_NAME }}
           RESULTS_CHANNEL_NAME: ${{ vars.RESULTS_CHANNEL_NAME }}
           TIMEZONE: ${{ vars.TIMEZONE }}
+
+      - name: Commit updated state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/state.json
+          git diff --cached --quiet || git commit -m "Update goals tracker state [skip ci]"
+          git push

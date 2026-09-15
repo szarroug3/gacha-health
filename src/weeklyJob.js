@@ -46,7 +46,13 @@ async function postWeeklyMessages() {
 
   for (const channel of goalChannels) {
     const newMessage = await discord.sendMessage(channel.id, newWeekLabel);
-    state.channels[channel.id] = { lastMessageId: newMessage.id, weekLabel: newWeekLabel };
+    // Merge rather than replace - preserves totalPoints/creditedMessageId
+    // that scoreLastWeek() may have already set for this channel.
+    state.channels[channel.id] = {
+      ...(state.channels[channel.id] || {}),
+      lastMessageId: newMessage.id,
+      weekLabel: newWeekLabel,
+    };
   }
 
   saveState(state);
