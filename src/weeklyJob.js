@@ -237,36 +237,22 @@ async function tallyPoints(channelId, message, botUserId) {
   return total;
 }
 
-// Discord doesn't render markdown pipe-tables, so the aligned columns go in
-// a monospace code block inside an embed - that gets the nice card/title
-// chrome of an embed plus properly lined-up columns for the 3 numbers.
+const RANK_EMOJI = ['🥇', '🥈', '🥉'];
+
+// One field per channel (Discord lays these out as a grid of cards) ranked
+// by total, rather than a monospace table crammed into the description.
 function buildResultsEmbed(rows, weekLabel) {
   const sorted = [...rows].sort((a, b) => b.total - a.total || a.channel.localeCompare(b.channel));
 
-  const colWidths = {
-    name: Math.max(4, ...sorted.map((r) => r.channel.length)),
-    lastWeek: Math.max(9, ...sorted.map((r) => String(r.lastWeek).length)),
-    total: Math.max(5, ...sorted.map((r) => String(r.total).length)),
-  };
-
-  const row = (name, lastWeek, total) =>
-    pad(name, colWidths.name) + '  ' + pad(lastWeek, colWidths.lastWeek) + '  ' + pad(total, colWidths.total);
-
-  const lines = [
-    row('Name', 'Last Week', 'Total'),
-    row('-'.repeat(colWidths.name), '-'.repeat(colWidths.lastWeek), '-'.repeat(colWidths.total)),
-    ...sorted.map((r) => row(r.channel, String(r.lastWeek), String(r.total))),
-  ];
-
   return {
-    title: `Results for ${weekLabel || 'last week'}`,
-    color: 0x5865f2,
-    description: '```\n' + lines.join('\n') + '\n```',
+    title: `📊 Results for ${weekLabel || 'last week'}`,
+    color: 0x57f287,
+    fields: sorted.map((row, i) => ({
+      name: `${RANK_EMOJI[i] || '▫️'} ${row.channel}`,
+      value: `Last week: **${row.lastWeek}**\nTotal: **${row.total}**`,
+      inline: true,
+    })),
   };
-}
-
-function pad(str, len) {
-  return str + ' '.repeat(Math.max(0, len - str.length));
 }
 
 module.exports = {
