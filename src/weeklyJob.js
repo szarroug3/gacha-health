@@ -263,38 +263,38 @@ function sortByLastWeek(rows) {
   return [...rows].sort((a, b) => b.lastWeek - a.lastWeek || b.total - a.total || a.channel.localeCompare(b.channel));
 }
 
-// Discord doesn't support real tables, and normal text can't align columns
-// by padding (every letter is a different width) - only a monospace code
-// block can do that. This avoids the code-block look by using one native
-// field per channel instead, kept to a single line each so it doesn't get
-// busy. Tied values just end up adjacent in the sort order.
+// Bold channel name on its own line, stats below it, blank line between
+// entries - reads like a native Discord embed instead of a code block or
+// a grid of cards. Tied values just end up adjacent in the sort order.
 function buildResultsEmbed(rows, weekLabel) {
   const sorted = sortByLastWeek(rows);
+
+  const description = sorted
+    .map((r) => `**${r.channel}**\n**${r.lastWeek}** this week · **${r.total}** total`)
+    .join('\n\n');
 
   return {
     title: `📊 Results for ${weekLabel || 'last week'}`,
     color: 0x57f287,
-    fields: sorted.map((r) => ({
-      name: r.channel,
-      value: `**${r.lastWeek}** this week · **${r.total}** total`,
-      inline: true,
-    })),
+    description,
+    footer: { text: 'Last updated' },
+    timestamp: new Date().toISOString(),
   };
 }
 
-// Same field-grid style as buildResultsEmbed, but for a totals-only view
-// (no "last week" figure to show).
+// Same style as buildResultsEmbed, but for a totals-only view (no "last
+// week" figure to show).
 function buildTotalsEmbed(rows) {
   const sorted = sortByTotal(rows);
+
+  const description = sorted.map((r) => `**${r.channel}**\n**${r.total}** ${pointsSuffix(r.total)}`).join('\n\n');
 
   return {
     title: '🏆 Current Totals',
     color: 0x57f287,
-    fields: sorted.map((r) => ({
-      name: r.channel,
-      value: `**${r.total}** ${pointsSuffix(r.total)}`,
-      inline: true,
-    })),
+    description,
+    footer: { text: 'Last updated' },
+    timestamp: new Date().toISOString(),
   };
 }
 
