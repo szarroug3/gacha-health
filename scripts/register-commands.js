@@ -1,5 +1,5 @@
-// One-time (re-runnable) script that registers the /spend, /add, /total
-// slash commands with Discord for this server. Run locally:
+// One-time (re-runnable) script that registers the /spend, /add, /total,
+// /totals slash commands with Discord for this server. Run locally:
 //   node scripts/register-commands.js
 // Needs DISCORD_TOKEN, DISCORD_APPLICATION_ID, and GUILD_ID in .env.
 const config = require('../src/config');
@@ -30,6 +30,11 @@ const commands = [
     name: 'total',
     description: "Check a goal channel's current point total",
     options: [{ name: 'channel', description: 'Goal channel name', type: STRING, required: true }],
+  },
+  {
+    name: 'totals',
+    description: 'Show a leaderboard of every goal channel\'s current point total',
+    options: [],
   },
 ];
 

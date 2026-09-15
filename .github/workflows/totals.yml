@@ -1,0 +1,33 @@
+name: Manual - check all totals
+
+on:
+  workflow_dispatch:
+    inputs:
+      interaction_token:
+        description: 'Internal: set by the /totals Discord command webhook, leave blank for manual runs'
+        required: false
+      application_id:
+        description: 'Internal: set by the /totals Discord command webhook, leave blank for manual runs'
+        required: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run totals
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          GUILD_ID: ${{ secrets.GUILD_ID }}
+          CATEGORY_NAME: ${{ vars.CATEGORY_NAME }}
+          RESULTS_CHANNEL_NAME: ${{ vars.RESULTS_CHANNEL_NAME }}
+          TIMEZONE: ${{ vars.TIMEZONE }}
+          INTERACTION_TOKEN: ${{ inputs.interaction_token }}
+          DISCORD_APPLICATION_ID: ${{ inputs.application_id }}

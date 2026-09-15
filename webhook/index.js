@@ -1,10 +1,14 @@
 import { verifyKey, InteractionType, InteractionResponseType } from 'discord-interactions';
 
-// Slash command name -> the workflow file in the main repo that handles it.
-const WORKFLOW_FILES = {
-  spend: 'spend.yml',
-  add: 'add.yml',
-  total: 'total.yml',
+// Slash command name -> the workflow file it triggers, and which of its
+// own options to forward as dispatch inputs. GitHub's dispatch API rejects
+// any input not declared in the target workflow's yml, so each command
+// must list exactly what its workflow expects - nothing more.
+const COMMANDS = {
+  spend: { workflow: 'spend.yml', options: ['channel', 'amount', 'note'] },
+  add: { workflow: 'add.yml', options: ['channel', 'amount', 'note'] },
+  total: { workflow: 'total.yml', options: ['channel'] },
+  totals: { workflow: 'totals.yml', options: [] },
 };
 
 export default {
@@ -29,20 +33,19 @@ export default {
     }
 
     if (interaction.type === InteractionType.APPLICATION_COMMAND) {
-      const commandName = interaction.data.name;
-      const workflowFile = WORKFLOW_FILES[commandName];
+      const command = COMMANDS[interaction.data.name];
 
-      if (!workflowFile) {
+      if (!command) {
         return jsonResponse({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: { content: `Unknown command: ${commandName}`, flags: 64 },
+          data: { content: `Unknown command: ${interaction.data.name}`, flags: 64 },
         });
       }
 
       // GitHub Actions can take longer than Discord's 3-second window, so
       // respond "thinking..." immediately and do the real work in the
       // background - dispatchWorkflow() edits this response once it's done.
-      ctx.waitUntil(dispatchWorkflow(env, commandName, workflowFile, interaction));
+      ctx.waitUntil(dispatchWorkflow(env, command, interaction));
       return jsonResponse({ type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE });
     }
 
@@ -50,28 +53,23 @@ export default {
   },
 };
 
-async function dispatchWorkflow(env, commandName, workflowFile, interaction) {
+async function dispatchWorkflow(env, command, interaction) {
   const options = {};
   for (const opt of interaction.data.options || []) {
     options[opt.name] = opt.value;
   }
 
-  // Each workflow only declares the inputs it actually uses (total.yml has
-  // no amount/note) - GitHub's dispatch API rejects any undeclared input,
-  // so only include what the target workflow expects.
   const inputs = {
-    channel: String(options.channel ?? ''),
     interaction_token: interaction.token,
     application_id: interaction.application_id,
   };
-  if (commandName === 'spend' || commandName === 'add') {
-    inputs.amount = options.amount != null ? String(options.amount) : '';
-    inputs.note = options.note ? String(options.note) : '';
+  for (const name of command.options) {
+    inputs[name] = options[name] != null ? String(options[name]) : '';
   }
 
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/${workflowFile}/dispatches`,
+      `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/${command.workflow}/dispatches`,
       {
         method: 'POST',
         headers: {

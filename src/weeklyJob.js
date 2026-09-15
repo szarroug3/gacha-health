@@ -183,6 +183,24 @@ async function getTotal(channelName, { skipChannelMessage = false } = {}) {
   return { channel: channel.name, total };
 }
 
+// Looks up every goal channel's current running total and posts a
+// leaderboard to the results channel. Read-only - doesn't touch state.
+async function getAllTotals({ skipChannelMessage = false } = {}) {
+  const { goalChannels, resultsChannel } = await getChannels();
+  const state = loadState();
+
+  const rows = goalChannels.map((channel) => ({
+    channel: channel.name,
+    total: state.channels[channel.id]?.totalPoints || 0,
+  }));
+
+  if (!skipChannelMessage) {
+    await discord.sendEmbed(resultsChannel.id, buildTotalsEmbed(rows));
+  }
+
+  return rows;
+}
+
 // Runs both steps in the right order: score the outgoing week, then post
 // the new one. Used for the weekly scheduled run.
 async function runWeeklyJob() {
@@ -255,8 +273,26 @@ function buildResultsEmbed(rows, weekLabel) {
   };
 }
 
+// Same card-grid style as buildResultsEmbed, but for a totals-only
+// leaderboard (no "last week" figure to show).
+function buildTotalsEmbed(rows) {
+  const sorted = [...rows].sort((a, b) => b.total - a.total || a.channel.localeCompare(b.channel));
+
+  return {
+    title: '🏆 Current Totals',
+    color: 0x57f287,
+    fields: sorted.map((row, i) => ({
+      name: `${RANK_EMOJI[i] || '▫️'} ${row.channel}`,
+      value: `Total: **${row.total}**`,
+      inline: true,
+    })),
+  };
+}
+
 module.exports = {
   runWeeklyJob,
+  getAllTotals,
+  buildTotalsEmbed,
   postWeeklyMessages,
   scoreLastWeek,
   seedTrackedMessages,

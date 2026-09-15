@@ -60,6 +60,13 @@ function editInteractionResponse(applicationId, interactionToken, content) {
   });
 }
 
+function editInteractionResponseEmbed(applicationId, interactionToken, embed) {
+  return discordFetch(`/webhooks/${applicationId}/${interactionToken}/messages/@original`, {
+    method: 'PATCH',
+    body: JSON.stringify({ embeds: [embed] }),
+  });
+}
+
 // Custom emoji must be identified as "name:id"; unicode emoji just uses the
 // character itself. Paginates in case a reaction has >100 users.
 async function getReactionUsers(channelId, messageId, emojiIdentifier) {
@@ -88,4 +95,5 @@ module.exports = {
   getRecentMessages,
   getReactionUsers,
   editInteractionResponse,
+  editInteractionResponseEmbed,
 };

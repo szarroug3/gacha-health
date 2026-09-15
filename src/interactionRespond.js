@@ -19,7 +19,16 @@ function makeResponder() {
     }
   };
 
-  return { respond, isInteraction };
+  const respondEmbed = async (embed) => {
+    if (!isInteraction) return;
+    try {
+      await discord.editInteractionResponseEmbed(applicationId, interactionToken, embed);
+    } catch (err) {
+      console.error('Failed to edit interaction response:', err.message);
+    }
+  };
+
+  return { respond, respondEmbed, isInteraction };
 }
 
 module.exports = { makeResponder };
