@@ -255,53 +255,49 @@ async function tallyPoints(channelId, message, botUserId) {
   return total;
 }
 
-const RANK_EMOJI = ['🥇', '🥈', '🥉'];
-
-// Standard "competition ranking": equal values share the same rank, and
-// the next distinct value skips ahead (1, 2, 2, 4 - not 1, 2, 2, 3).
-function rankRows(rows, key) {
-  const sorted = [...rows].sort((a, b) => b[key] - a[key] || a.channel.localeCompare(b.channel));
-
-  let rank = 0;
-  let prevValue = null;
-  return sorted.map((row, i) => {
-    if (row[key] !== prevValue) rank = i + 1;
-    prevValue = row[key];
-    return { ...row, rank };
-  });
+function sortByTotal(rows) {
+  return [...rows].sort((a, b) => b.total - a.total || a.channel.localeCompare(b.channel));
 }
 
-function rankLabel(rank) {
-  return RANK_EMOJI[rank - 1] || `${rank}.`;
+function padRight(str, len) {
+  return str + ' '.repeat(Math.max(0, len - str.length));
 }
 
-// A simple one-line-per-channel leaderboard list reads much easier than a
-// grid of cards, and makes shared ranks (ties) visually obvious.
+// Discord only lines up columns in monospace text, so the table itself has
+// to be a code block - tied totals just end up adjacent in the sort, which
+// is enough to show the tie without needing an explicit rank column.
 function buildResultsEmbed(rows, weekLabel) {
-  const ranked = rankRows(rows, 'total');
-  const lines = ranked.map(
-    (r) => `${rankLabel(r.rank)} **${r.channel}** — **${r.total}** total (+${r.lastWeek} this week)`
-  );
+  const sorted = sortByTotal(rows);
+
+  const nameWidth = Math.max(4, ...sorted.map((r) => r.channel.length));
+  const lastWeekWidth = Math.max(9, ...sorted.map((r) => String(r.lastWeek).length));
+
+  const line = (name, lastWeek, total) => `${padRight(name, nameWidth)}  ${padRight(String(lastWeek), lastWeekWidth)}  ${total}`;
+
+  const lines = [line('Name', 'Last Week', 'Total'), ...sorted.map((r) => line(r.channel, r.lastWeek, r.total))];
 
   return {
     title: `📊 Results for ${weekLabel || 'last week'}`,
     color: 0x57f287,
-    description: lines.join('\n'),
+    description: '```\n' + lines.join('\n') + '\n```',
   };
 }
 
-// Same leaderboard-list style as buildResultsEmbed, but for a totals-only
-// view (no "this week" figure to show).
+// Same table style as buildResultsEmbed, but for a totals-only view (no
+// "last week" figure to show).
 function buildTotalsEmbed(rows) {
-  const ranked = rankRows(rows, 'total');
-  const lines = ranked.map(
-    (r) => `${rankLabel(r.rank)} **${r.channel}** — **${r.total}** ${pointsSuffix(r.total)}`
-  );
+  const sorted = sortByTotal(rows);
+
+  const nameWidth = Math.max(4, ...sorted.map((r) => r.channel.length));
+
+  const line = (name, total) => `${padRight(name, nameWidth)}  ${total}`;
+
+  const lines = [line('Name', 'Total'), ...sorted.map((r) => line(r.channel, r.total))];
 
   return {
     title: '🏆 Current Totals',
     color: 0x57f287,
-    description: lines.join('\n'),
+    description: '```\n' + lines.join('\n') + '\n```',
   };
 }
 
