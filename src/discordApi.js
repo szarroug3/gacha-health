@@ -46,6 +46,10 @@ function getMessage(channelId, messageId) {
   return discordFetch(`/channels/${channelId}/messages/${messageId}`);
 }
 
+function getRecentMessages(channelId, limit = 25) {
+  return discordFetch(`/channels/${channelId}/messages?limit=${limit}`);
+}
+
 // Custom emoji must be identified as "name:id"; unicode emoji just uses the
 // character itself. Paginates in case a reaction has >100 users.
 async function getReactionUsers(channelId, messageId, emojiIdentifier) {
@@ -65,4 +69,12 @@ async function getReactionUsers(channelId, messageId, emojiIdentifier) {
   return users;
 }
 
-module.exports = { getCurrentUser, getGuildChannels, sendMessage, sendEmbed, getMessage, getReactionUsers };
+module.exports = {
+  getCurrentUser,
+  getGuildChannels,
+  sendMessage,
+  sendEmbed,
+  getMessage,
+  getRecentMessages,
+  getReactionUsers,
+};

@@ -6,7 +6,8 @@
   "scripts": {
     "post": "node src/post.js",
     "score": "node src/score.js",
-    "run": "node src/run.js"
+    "run": "node src/run.js",
+    "seed": "node src/seed.js"
   },
   "engines": {
     "node": ">=20"

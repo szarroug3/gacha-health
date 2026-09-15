@@ -6,6 +6,10 @@ const discord = require('./discordApi');
 const CHANNEL_TYPE_TEXT = 0;
 const CHANNEL_TYPE_CATEGORY = 4;
 
+// Matches the plain "9/13-9/19" date-range messages the bot (or a human
+// filling in for it) posts.
+const WEEK_LABEL_RE = /^\d{1,2}\/\d{1,2}-\d{1,2}\/\d{1,2}$/;
+
 async function getChannels() {
   const channels = await discord.getGuildChannels(config.guildId);
 
@@ -90,6 +94,32 @@ async function runWeeklyJob() {
   await postWeeklyMessages();
 }
 
+// For channels the bot isn't already tracking (e.g. a human posted this
+// week's date-range message before the bot ever ran there), find the most
+// recent message that looks like "9/13-9/19" and adopt it, so scoring
+// picks up reactions already on it. Never overwrites a channel that's
+// already tracked.
+async function seedTrackedMessages() {
+  const { goalChannels } = await getChannels();
+  const state = loadState();
+  const seeded = [];
+
+  for (const channel of goalChannels) {
+    if (state.channels[channel.id]?.lastMessageId) continue;
+
+    const messages = await discord.getRecentMessages(channel.id, 25);
+    const match = messages.find((m) => WEEK_LABEL_RE.test((m.content || '').trim()));
+    if (!match) continue;
+
+    const weekLabel = match.content.trim();
+    state.channels[channel.id] = { lastMessageId: match.id, weekLabel };
+    seeded.push({ channel: channel.name, weekLabel });
+  }
+
+  saveState(state);
+  return seeded;
+}
+
 // Sums points from every tracked-emoji reaction on the message, from any
 // non-bot user (a channel's post is scored as a single total, not per-user).
 async function tallyPoints(channelId, message, botUserId) {
@@ -128,4 +158,4 @@ function buildResultsEmbed(rows, weekLabel) {
   };
 }
 
-module.exports = { runWeeklyJob, postWeeklyMessages, scoreLastWeek };
+module.exports = { runWeeklyJob, postWeeklyMessages, scoreLastWeek, seedTrackedMessages };

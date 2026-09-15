@@ -100,6 +100,12 @@ runnable on demand via **Run workflow**:
 - **Manual - score tracked messages** — scores whatever message is
   currently tracked in each goal channel right now, and posts the results
   table to `#bot`.
+- **Manual - adopt existing dated messages** — for channels the bot isn't
+  tracking yet (e.g. a human posted this week's `9/13-9/19` message before
+  the bot ever ran there), finds the most recent message matching that
+  date-range format in each untracked goal channel and adopts it, so
+  scoring picks up reactions already on it. Never touches a channel
+  that's already tracked.
 - **Weekly goals job** — the real scheduled workflow; also runnable
   manually (score, then post, back to back).
 
