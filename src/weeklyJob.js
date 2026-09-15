@@ -263,45 +263,38 @@ function sortByLastWeek(rows) {
   return [...rows].sort((a, b) => b.lastWeek - a.lastWeek || b.total - a.total || a.channel.localeCompare(b.channel));
 }
 
-function padRight(str, len) {
-  return str + ' '.repeat(Math.max(0, len - str.length));
-}
-
-// Discord only lines up columns in monospace text, so the table itself has
-// to be a code block - tied values just end up adjacent in the sort, which
-// is enough to show the tie without needing an explicit rank column.
+// Discord doesn't support real tables, and normal text can't align columns
+// by padding (every letter is a different width) - only a monospace code
+// block can do that. This avoids the code-block look by using one native
+// field per channel instead, kept to a single line each so it doesn't get
+// busy. Tied values just end up adjacent in the sort order.
 function buildResultsEmbed(rows, weekLabel) {
   const sorted = sortByLastWeek(rows);
-
-  const nameWidth = Math.max(4, ...sorted.map((r) => r.channel.length));
-  const lastWeekWidth = Math.max(9, ...sorted.map((r) => String(r.lastWeek).length));
-
-  const line = (name, lastWeek, total) => `${padRight(name, nameWidth)}  ${padRight(String(lastWeek), lastWeekWidth)}  ${total}`;
-
-  const lines = [line('Name', 'Last Week', 'Total'), ...sorted.map((r) => line(r.channel, r.lastWeek, r.total))];
 
   return {
     title: `📊 Results for ${weekLabel || 'last week'}`,
     color: 0x57f287,
-    description: '```\n' + lines.join('\n') + '\n```',
+    fields: sorted.map((r) => ({
+      name: r.channel,
+      value: `**${r.lastWeek}** this week · **${r.total}** total`,
+      inline: true,
+    })),
   };
 }
 
-// Same table style as buildResultsEmbed, but for a totals-only view (no
-// "last week" figure to show).
+// Same field-grid style as buildResultsEmbed, but for a totals-only view
+// (no "last week" figure to show).
 function buildTotalsEmbed(rows) {
   const sorted = sortByTotal(rows);
-
-  const nameWidth = Math.max(4, ...sorted.map((r) => r.channel.length));
-
-  const line = (name, total) => `${padRight(name, nameWidth)}  ${total}`;
-
-  const lines = [line('Name', 'Total'), ...sorted.map((r) => line(r.channel, r.total))];
 
   return {
     title: '🏆 Current Totals',
     color: 0x57f287,
-    description: '```\n' + lines.join('\n') + '\n```',
+    fields: sorted.map((r) => ({
+      name: r.channel,
+      value: `**${r.total}** ${pointsSuffix(r.total)}`,
+      inline: true,
+    })),
   };
 }
 
