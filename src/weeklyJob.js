@@ -79,7 +79,7 @@ async function scoreLastWeek() {
     resultsRows.push({ channel: channel.name, points });
   }
 
-  await discord.sendMessage(resultsChannel.id, formatResultsTable(resultsRows, scoredWeekLabel));
+  await discord.sendEmbed(resultsChannel.id, buildResultsEmbed(resultsRows, scoredWeekLabel));
   return resultsRows;
 }
 
@@ -111,27 +111,21 @@ async function tallyPoints(channelId, message, botUserId) {
   return total;
 }
 
-function formatResultsTable(rows, weekLabel) {
-  const header = `Results for ${weekLabel || 'last week'}`;
+// Discord doesn't render markdown pipe-tables, so an embed with one inline
+// field per channel is the native-looking way to show this: it renders as
+// a card with a title and a responsive grid of boxes.
+function buildResultsEmbed(rows, weekLabel) {
+  const sorted = [...rows].sort((a, b) => b.points - a.points || a.channel.localeCompare(b.channel));
 
-  const colWidths = {
-    channel: Math.max(7, ...rows.map((r) => r.channel.length)),
-    points: 6,
+  return {
+    title: `Results for ${weekLabel || 'last week'}`,
+    color: 0x5865f2,
+    fields: sorted.map((row) => ({
+      name: row.channel,
+      value: `${row.points} pt${row.points === 1 ? '' : 's'}`,
+      inline: true,
+    })),
   };
-
-  const lines = [
-    pad('Channel', colWidths.channel) + '  ' + pad('Points', colWidths.points),
-    '-'.repeat(colWidths.channel) + '  ' + '-'.repeat(colWidths.points),
-    ...rows.map(
-      (row) => pad(row.channel, colWidths.channel) + '  ' + pad(String(row.points), colWidths.points)
-    ),
-  ];
-
-  return `**${header}**\n\`\`\`\n${lines.join('\n')}\n\`\`\``;
-}
-
-function pad(str, len) {
-  return str + ' '.repeat(Math.max(0, len - str.length));
 }
 
 module.exports = { runWeeklyJob, postWeeklyMessages, scoreLastWeek };

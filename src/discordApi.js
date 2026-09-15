@@ -35,6 +35,13 @@ function sendMessage(channelId, content) {
   });
 }
 
+function sendEmbed(channelId, embed) {
+  return discordFetch(`/channels/${channelId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ embeds: [embed] }),
+  });
+}
+
 function getMessage(channelId, messageId) {
   return discordFetch(`/channels/${channelId}/messages/${messageId}`);
 }
@@ -58,4 +65,4 @@ async function getReactionUsers(channelId, messageId, emojiIdentifier) {
   return users;
 }
 
-module.exports = { getCurrentUser, getGuildChannels, sendMessage, getMessage, getReactionUsers };
+module.exports = { getCurrentUser, getGuildChannels, sendMessage, sendEmbed, getMessage, getReactionUsers };
