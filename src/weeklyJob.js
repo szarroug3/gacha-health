@@ -277,8 +277,6 @@ function buildResultsEmbed(rows, weekLabel) {
     title: `📊 Results for ${weekLabel || 'last week'}`,
     color: 0x57f287,
     description,
-    footer: { text: 'Last updated' },
-    timestamp: new Date().toISOString(),
   };
 }
 
@@ -293,8 +291,6 @@ function buildTotalsEmbed(rows) {
     title: '🏆 Current Totals',
     color: 0x57f287,
     description,
-    footer: { text: 'Last updated' },
-    timestamp: new Date().toISOString(),
   };
 }
 
