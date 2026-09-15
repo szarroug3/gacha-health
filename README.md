@@ -15,7 +15,7 @@ Sunday (around 12:00 AM Central), it:
      posts a results table to `#bot` with one row per channel showing
      **Last Week** and **Total** (running balance).
 2. Posts a new message in each of those channels with the new week's date
-   range (e.g. `9/13-9/19`), and starts tracking it for next week.
+   range (e.g. `9/13 - 9/19`), and starts tracking it for next week.
 
 State (which message to score next per channel, and each channel's
 running point total) lives in [data/state.json](data/state.json), which
@@ -127,10 +127,11 @@ runnable on demand via **Run workflow**:
   currently tracked in each goal channel right now, and posts the results
   table to `#bot`.
 - **Manual - adopt existing dated messages** — for channels the bot isn't
-  tracking yet (e.g. a human posted this week's `9/13-9/19` message before
-  the bot ever ran there), finds the most recent message matching that
-  date-range format in each untracked goal channel and adopts it, so
-  scoring picks up reactions already on it. Never touches a channel
+  tracking yet (e.g. a human posted this week's `9/13 - 9/19` message
+  before the bot ever ran there), finds the most recent message matching
+  that date-range format (hyphen or dash, spaces optional) in each
+  untracked goal channel and adopts it, so scoring picks up reactions
+  already on it. Never touches a channel
   that's already tracked.
 - **Weekly goals job** — the real scheduled workflow; also runnable
   manually (score, then post, back to back).

@@ -7,8 +7,10 @@ const CHANNEL_TYPE_TEXT = 0;
 const CHANNEL_TYPE_CATEGORY = 4;
 
 // Matches the plain "9/13-9/19" date-range messages the bot (or a human
-// filling in for it) posts.
-const WEEK_LABEL_RE = /^\d{1,2}\/\d{1,2}-\d{1,2}\/\d{1,2}$/;
+// filling in for it) posts. Tolerates hyphen/en dash/em dash and optional
+// spacing around it (e.g. "9/13 – 9/19"), since a human typing this by
+// hand may not use a plain hyphen.
+const WEEK_LABEL_RE = /^\d{1,2}\/\d{1,2}\s*[-–—]\s*\d{1,2}\/\d{1,2}$/;
 
 async function getChannels() {
   const channels = await discord.getGuildChannels(config.guildId);
@@ -217,13 +219,21 @@ async function seedTrackedMessages() {
   const { goalChannels } = await getChannels();
   const state = loadState();
   const seeded = [];
+  const alreadyTracked = [];
+  const noMatch = [];
 
   for (const channel of goalChannels) {
-    if (state.channels[channel.id]?.lastMessageId) continue;
+    if (state.channels[channel.id]?.lastMessageId) {
+      alreadyTracked.push(channel.name);
+      continue;
+    }
 
     const messages = await discord.getRecentMessages(channel.id, 25);
     const match = messages.find((m) => WEEK_LABEL_RE.test((m.content || '').trim()));
-    if (!match) continue;
+    if (!match) {
+      noMatch.push(channel.name);
+      continue;
+    }
 
     const weekLabel = match.content.trim();
     state.channels[channel.id] = { lastMessageId: match.id, weekLabel };
@@ -231,7 +241,7 @@ async function seedTrackedMessages() {
   }
 
   saveState(state);
-  return seeded;
+  return { seeded, alreadyTracked, noMatch };
 }
 
 // Sums points from every tracked-emoji reaction on the message, from any

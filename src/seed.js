@@ -1,11 +1,14 @@
 const { seedTrackedMessages } = require('./weeklyJob');
 
 seedTrackedMessages()
-  .then((seeded) => {
-    if (seeded.length === 0) {
-      console.log('Nothing to seed - every goal channel already has a tracked message.');
-    } else {
-      console.log('Seeded:', seeded);
+  .then(({ seeded, alreadyTracked, noMatch }) => {
+    if (seeded.length > 0) console.log('Seeded:', seeded);
+    if (alreadyTracked.length > 0) console.log('Already tracked, left alone:', alreadyTracked);
+    if (noMatch.length > 0) {
+      console.log('No message matching "M/D-M/D" found in the last 25 messages, skipped:', noMatch);
+    }
+    if (seeded.length === 0 && alreadyTracked.length === 0 && noMatch.length === 0) {
+      console.log('No goal channels found.');
     }
   })
   .catch((err) => {
