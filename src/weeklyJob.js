@@ -259,15 +259,19 @@ function sortByTotal(rows) {
   return [...rows].sort((a, b) => b.total - a.total || a.channel.localeCompare(b.channel));
 }
 
+function sortByLastWeek(rows) {
+  return [...rows].sort((a, b) => b.lastWeek - a.lastWeek || b.total - a.total || a.channel.localeCompare(b.channel));
+}
+
 function padRight(str, len) {
   return str + ' '.repeat(Math.max(0, len - str.length));
 }
 
 // Discord only lines up columns in monospace text, so the table itself has
-// to be a code block - tied totals just end up adjacent in the sort, which
+// to be a code block - tied values just end up adjacent in the sort, which
 // is enough to show the tie without needing an explicit rank column.
 function buildResultsEmbed(rows, weekLabel) {
-  const sorted = sortByTotal(rows);
+  const sorted = sortByLastWeek(rows);
 
   const nameWidth = Math.max(4, ...sorted.map((r) => r.channel.length));
   const lastWeekWidth = Math.max(9, ...sorted.map((r) => String(r.lastWeek).length));
