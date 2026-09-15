@@ -115,7 +115,9 @@ function pointsSuffix(amount) {
 
 // Deducts points from a goal channel's running total (e.g. someone redeemed
 // a reward). Throws if the channel isn't found or doesn't have enough.
-async function spendPoints(channelName, amount, note) {
+// skipChannelMessage: true when a slash-command interaction response will
+// already show the result in-channel, so the #bot post would be redundant.
+async function spendPoints(channelName, amount, note, { skipChannelMessage = false } = {}) {
   const { goalChannels, resultsChannel } = await getChannels();
   const channel = findGoalChannel(goalChannels, channelName);
 
@@ -131,18 +133,20 @@ async function spendPoints(channelName, amount, note) {
   state.channels[channel.id] = channelState;
   saveState(state);
 
-  const noteText = note ? ` (${note})` : '';
-  await discord.sendMessage(
-    resultsChannel.id,
-    `**${channel.name}** spent **${amount}** ${pointsSuffix(amount)}${noteText}. Remaining: **${channelState.totalPoints}**.`
-  );
+  if (!skipChannelMessage) {
+    const noteText = note ? ` (${note})` : '';
+    await discord.sendMessage(
+      resultsChannel.id,
+      `**${channel.name}** spent **${amount}** ${pointsSuffix(amount)}${noteText}. Remaining: **${channelState.totalPoints}**.`
+    );
+  }
 
   return { channel: channel.name, spent: amount, remaining: channelState.totalPoints };
 }
 
 // Adds points to a goal channel's running total directly (e.g. a manual
 // bonus award, or a correction). Not subject to the emoji scoring rules.
-async function addPoints(channelName, amount, note) {
+async function addPoints(channelName, amount, note, { skipChannelMessage = false } = {}) {
   const { goalChannels, resultsChannel } = await getChannels();
   const channel = findGoalChannel(goalChannels, channelName);
 
@@ -152,25 +156,29 @@ async function addPoints(channelName, amount, note) {
   state.channels[channel.id] = channelState;
   saveState(state);
 
-  const noteText = note ? ` (${note})` : '';
-  await discord.sendMessage(
-    resultsChannel.id,
-    `**${channel.name}** was given **${amount}** ${pointsSuffix(amount)}${noteText}. New total: **${channelState.totalPoints}**.`
-  );
+  if (!skipChannelMessage) {
+    const noteText = note ? ` (${note})` : '';
+    await discord.sendMessage(
+      resultsChannel.id,
+      `**${channel.name}** was given **${amount}** ${pointsSuffix(amount)}${noteText}. New total: **${channelState.totalPoints}**.`
+    );
+  }
 
   return { channel: channel.name, added: amount, total: channelState.totalPoints };
 }
 
 // Looks up a goal channel's current running total and posts it to the
 // results channel. Read-only - doesn't touch state.
-async function getTotal(channelName) {
+async function getTotal(channelName, { skipChannelMessage = false } = {}) {
   const { goalChannels, resultsChannel } = await getChannels();
   const channel = findGoalChannel(goalChannels, channelName);
 
   const state = loadState();
   const total = state.channels[channel.id]?.totalPoints || 0;
 
-  await discord.sendMessage(resultsChannel.id, `**${channel.name}** has **${total}** ${pointsSuffix(total)}.`);
+  if (!skipChannelMessage) {
+    await discord.sendMessage(resultsChannel.id, `**${channel.name}** has **${total}** ${pointsSuffix(total)}.`);
+  }
 
   return { channel: channel.name, total };
 }

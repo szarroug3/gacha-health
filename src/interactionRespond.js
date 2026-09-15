@@ -8,15 +8,18 @@ const discord = require('./discordApi');
 function makeResponder() {
   const interactionToken = process.env.INTERACTION_TOKEN;
   const applicationId = process.env.DISCORD_APPLICATION_ID;
+  const isInteraction = Boolean(interactionToken && applicationId);
 
-  return async function respond(content) {
-    if (!interactionToken || !applicationId) return;
+  const respond = async (content) => {
+    if (!isInteraction) return;
     try {
       await discord.editInteractionResponse(applicationId, interactionToken, content);
     } catch (err) {
       console.error('Failed to edit interaction response:', err.message);
     }
   };
+
+  return { respond, isInteraction };
 }
 
 module.exports = { makeResponder };

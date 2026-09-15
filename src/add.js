@@ -4,7 +4,7 @@ const { makeResponder } = require('./interactionRespond');
 const channel = process.env.ADD_CHANNEL;
 const amount = Number(process.env.ADD_AMOUNT);
 const note = process.env.ADD_NOTE || undefined;
-const respond = makeResponder();
+const { respond, isInteraction } = makeResponder();
 
 async function main() {
   if (!channel) {
@@ -14,7 +14,7 @@ async function main() {
     throw new Error(`ADD_AMOUNT must be a positive whole number, got "${process.env.ADD_AMOUNT}"`);
   }
 
-  const result = await addPoints(channel, amount, note);
+  const result = await addPoints(channel, amount, note, { skipChannelMessage: isInteraction });
   console.log('Added:', result);
   await respond(
     `Added **${amount}** point${amount === 1 ? '' : 's'} to **${result.channel}**. New total: **${result.total}**.`

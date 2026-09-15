@@ -4,7 +4,7 @@ const { makeResponder } = require('./interactionRespond');
 const channel = process.env.SPEND_CHANNEL;
 const amount = Number(process.env.SPEND_AMOUNT);
 const note = process.env.SPEND_NOTE || undefined;
-const respond = makeResponder();
+const { respond, isInteraction } = makeResponder();
 
 async function main() {
   if (!channel) {
@@ -14,7 +14,7 @@ async function main() {
     throw new Error(`SPEND_AMOUNT must be a positive whole number, got "${process.env.SPEND_AMOUNT}"`);
   }
 
-  const result = await spendPoints(channel, amount, note);
+  const result = await spendPoints(channel, amount, note, { skipChannelMessage: isInteraction });
   console.log('Spent:', result);
   await respond(
     `Spent **${amount}** point${amount === 1 ? '' : 's'} from **${result.channel}**. Remaining: **${result.remaining}**.`
