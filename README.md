@@ -9,6 +9,7 @@ Sunday (around 12:00 AM Central), it:
    - `:1sunday:` `:2monday:` `:3tuesday:` `:4wednesday:` `:5thursday:`
      `:6friday:` `:7saturday:` = 1 point each
    - `:Biggoal:` = 5 points
+   - `:Weekly:` = 3 points
    - Posts a results table to `#bot` with one row per channel (0 if nobody
      reacted).
 2. Posts a new message in each of those channels with the new week's date
@@ -41,10 +42,10 @@ test server first** (see below) before adding it to your real one.
 
 Custom emojis are per-server, so whichever server you invite the bot to
 needs its own copies. In that server's emoji settings, add custom emojis
-named exactly (case matters for `Biggoal`):
+named exactly (case matters for `Biggoal` and `Weekly`):
 
 ```
-1sunday 2monday 3tuesday 4wednesday 5thursday 6friday 7saturday Biggoal
+1sunday 2monday 3tuesday 4wednesday 5thursday 6friday 7saturday Biggoal Weekly
 ```
 
 ### 4. Create the channels

@@ -2,7 +2,7 @@ require('dotenv').config();
 
 // Point values per emoji name (lowercased). Custom guild emojis must be
 // named exactly: 1sunday, 2monday, 3tuesday, 4wednesday, 5thursday,
-// 6friday, 7saturday, Biggoal
+// 6friday, 7saturday, Biggoal, Weekly
 const EMOJI_POINTS = {
   '1sunday': 1,
   '2monday': 1,
@@ -12,6 +12,7 @@ const EMOJI_POINTS = {
   '6friday': 1,
   '7saturday': 1,
   biggoal: 5,
+  weekly: 3,
 };
 
 module.exports = {
