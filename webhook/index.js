@@ -42,7 +42,7 @@ export default {
       // GitHub Actions can take longer than Discord's 3-second window, so
       // respond "thinking..." immediately and do the real work in the
       // background - dispatchWorkflow() edits this response once it's done.
-      ctx.waitUntil(dispatchWorkflow(env, workflowFile, interaction));
+      ctx.waitUntil(dispatchWorkflow(env, commandName, workflowFile, interaction));
       return jsonResponse({ type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE });
     }
 
@@ -50,19 +50,24 @@ export default {
   },
 };
 
-async function dispatchWorkflow(env, workflowFile, interaction) {
+async function dispatchWorkflow(env, commandName, workflowFile, interaction) {
   const options = {};
   for (const opt of interaction.data.options || []) {
     options[opt.name] = opt.value;
   }
 
+  // Each workflow only declares the inputs it actually uses (total.yml has
+  // no amount/note) - GitHub's dispatch API rejects any undeclared input,
+  // so only include what the target workflow expects.
   const inputs = {
     channel: String(options.channel ?? ''),
-    amount: options.amount != null ? String(options.amount) : '',
-    note: options.note ? String(options.note) : '',
     interaction_token: interaction.token,
     application_id: interaction.application_id,
   };
+  if (commandName === 'spend' || commandName === 'add') {
+    inputs.amount = options.amount != null ? String(options.amount) : '';
+    inputs.note = options.note ? String(options.note) : '';
+  }
 
   try {
     const res = await fetch(
