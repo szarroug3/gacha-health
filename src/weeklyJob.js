@@ -36,19 +36,19 @@ async function runWeeklyJob(client) {
 
   for (const channel of goalChannels) {
     const channelState = state.channels[channel.id] || {};
+    let points = 0;
 
     if (channelState.lastMessageId) {
       try {
         const prevMessage = await channel.messages.fetch(channelState.lastMessageId);
-        const points = await tallyPoints(prevMessage, client.user.id);
-        for (const [userLabel, pts] of points.entries()) {
-          resultsRows.push({ channel: channel.name, user: userLabel, points: pts });
-        }
+        points = await tallyPoints(prevMessage, client.user.id);
         scoredWeekLabel = channelState.weekLabel;
       } catch (err) {
         console.error(`Could not fetch/tally message for #${channel.name}: ${err.message}`);
       }
     }
+
+    resultsRows.push({ channel: channel.name, points });
 
     const newMessage = await channel.send(newWeekLabel);
     state.channels[channel.id] = { lastMessageId: newMessage.id, weekLabel: newWeekLabel };
@@ -56,15 +56,13 @@ async function runWeeklyJob(client) {
 
   saveState(state);
 
-  if (resultsRows.length > 0) {
-    await resultsChannel.send(formatResultsTable(resultsRows, scoredWeekLabel));
-  } else {
-    await resultsChannel.send('No scores to report for last week (first run, or no reactions found).');
-  }
+  await resultsChannel.send(formatResultsTable(resultsRows, scoredWeekLabel));
 }
 
+// Sums points from every tracked-emoji reaction on the message, from any
+// non-bot user (a channel's post is scored as a single total, not per-user).
 async function tallyPoints(message, botUserId) {
-  const points = new Map(); // username -> points
+  let total = 0;
 
   for (const reaction of message.reactions.cache.values()) {
     const emojiName = (reaction.emoji.name || '').toLowerCase();
@@ -74,11 +72,11 @@ async function tallyPoints(message, botUserId) {
     const users = await reaction.users.fetch();
     for (const user of users.values()) {
       if (user.bot || user.id === botUserId) continue;
-      points.set(user.username, (points.get(user.username) || 0) + value);
+      total += value;
     }
   }
 
-  return points;
+  return total;
 }
 
 function formatResultsTable(rows, weekLabel) {
@@ -86,22 +84,14 @@ function formatResultsTable(rows, weekLabel) {
 
   const colWidths = {
     channel: Math.max(7, ...rows.map((r) => r.channel.length)),
-    user: Math.max(4, ...rows.map((r) => r.user.length)),
     points: 6,
   };
 
-  const sorted = [...rows].sort((a, b) => b.points - a.points);
-
   const lines = [
-    pad('Channel', colWidths.channel) + '  ' + pad('User', colWidths.user) + '  ' + pad('Points', colWidths.points),
-    '-'.repeat(colWidths.channel) + '  ' + '-'.repeat(colWidths.user) + '  ' + '-'.repeat(colWidths.points),
-    ...sorted.map(
-      (row) =>
-        pad(row.channel, colWidths.channel) +
-        '  ' +
-        pad(row.user, colWidths.user) +
-        '  ' +
-        pad(String(row.points), colWidths.points)
+    pad('Channel', colWidths.channel) + '  ' + pad('Points', colWidths.points),
+    '-'.repeat(colWidths.channel) + '  ' + '-'.repeat(colWidths.points),
+    ...rows.map(
+      (row) => pad(row.channel, colWidths.channel) + '  ' + pad(String(row.points), colWidths.points)
     ),
   ];
 

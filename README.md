@@ -86,5 +86,5 @@ channel, posts a new dated message, and posts the results table to `#bot`.
   and note in `#bot` that there's nothing to report.
 - Only reactions from the tracked emoji names count; any other emoji on
   the post is ignored.
-- If more than one person reacts to a given channel's post, each person's
-  points are tallied and shown as separate rows in the results table.
+- The results table always has exactly one row per goal channel. If no one
+  reacted (or there was no previous post to score), that channel shows 0.
