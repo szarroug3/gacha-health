@@ -20,11 +20,5 @@ module.exports = {
   categoryName: process.env.CATEGORY_NAME || 'Personal Goals',
   resultsChannelName: process.env.RESULTS_CHANNEL_NAME || 'bot',
   timezone: process.env.TIMEZONE || 'America/Chicago',
-  // Cron schedules (in the timezone above). Defaults score the outgoing
-  // week just before midnight Saturday, then post the new week's messages
-  // right at midnight Sunday - score always needs to run before post, since
-  // post overwrites the tracked message that score reads.
-  scoreCron: process.env.SCORE_CRON || '58 23 * * 6',
-  postCron: process.env.POST_CRON || '0 0 * * 0',
   EMOJI_POINTS,
 };

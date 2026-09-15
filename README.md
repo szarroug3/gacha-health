@@ -1,23 +1,22 @@
 # Discord Goals Bot
 
-This bot runs two jobs, on their own schedules:
+Runs as a scheduled [GitHub Actions](https://github.com/features/actions) workflow — no server to host, no
+credit card, and it only needs to run for a few seconds once a week. Every
+Sunday (around 12:00 AM Central), it:
 
-- **Post** (default: Sunday 12:00 AM Central) — posts a new message in every
-  text channel under the **Personal Goals** category with the new week's
-  date range (e.g. `9/13-9/19`), and starts tracking that message.
-- **Score** (default: Saturday 11:58 PM Central, i.e. just before Post) —
-  scores whatever message is currently tracked in each goal channel, based
-  on reactions, and posts a results table to `#bot`:
-  - `:1sunday:` `:2monday:` `:3tuesday:` `:4wednesday:` `:5thursday:`
-    `:6friday:` `:7saturday:` = 1 point each
-  - `:Biggoal:` = 5 points
+1. Scores the message currently tracked in every text channel under the
+   **Personal Goals** category, based on reactions:
+   - `:1sunday:` `:2monday:` `:3tuesday:` `:4wednesday:` `:5thursday:`
+     `:6friday:` `:7saturday:` = 1 point each
+   - `:Biggoal:` = 5 points
+   - Posts a results table to `#bot` with one row per channel (0 if nobody
+     reacted).
+2. Posts a new message in each of those channels with the new week's date
+   range (e.g. `9/13-9/19`), and starts tracking it for next week.
 
-Score always needs to run before Post, since Post overwrites the tracked
-message that Score reads. The default times keep a safety gap; if you
-change the schedules, keep Score before Post.
-
-State (which message to score next, per channel) is kept in
-`data/state.json`, created automatically on first run.
+State (which message to score next, per channel) lives in
+[data/state.json](data/state.json), which the workflow commits back to
+this repo after each run.
 
 ## Setup
 
@@ -25,9 +24,8 @@ State (which message to score next, per channel) is kept in
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create a new application.
 2. Under **Bot**, click "Add Bot".
-3. Under **Privileged Gateway Intents**, enable **Message Content Intent**
-   (needed for the `!goals ...` manual-test commands).
-4. Copy the bot token (Bot → Reset Token) — you'll need it below.
+3. Copy the bot token (Bot → Reset Token) — you'll need it below. No
+   privileged intents are needed; everything runs over the REST API.
 
 ### 2. Invite the bot to a server
 
@@ -56,89 +54,81 @@ named exactly (case matters for `Biggoal`):
 - A text channel named `bot` (configurable, can be anywhere) — that's
   where the weekly results table gets posted.
 
-### 5. Configure
+### 5. Add repo secrets/variables
 
-```bash
-cp .env.example .env
-```
+In this repo: **Settings → Secrets and variables → Actions**.
 
-Fill in `.env`:
+Required, under **Secrets**:
 
 - `DISCORD_TOKEN` — the bot token from step 1
 - `GUILD_ID` — the server's ID (enable Developer Mode in Discord settings,
   then right-click the server icon → Copy Server ID)
+
+Optional, under **Variables** (only add if you want non-default values):
+
 - `CATEGORY_NAME` — defaults to `Personal Goals`
 - `RESULTS_CHANNEL_NAME` — defaults to `bot`
 - `TIMEZONE` — defaults to `America/Chicago`
-- `SCORE_CRON` / `POST_CRON` — only needed if you want the bot to
-  auto-fire at specific times (see testing options below); otherwise leave
-  the defaults
 
-### 6. Install and run
+### 6. Enable the workflow
 
-```bash
-npm install
-npm start
-```
-
-Keep it running (e.g. with `pm2`, a systemd service, or a small always-on
-box/VPS) so the schedules actually fire.
+Nothing else to install or run — as soon as secrets are set, the
+`Weekly goals job` workflow (`.github/workflows/weekly.yml`) will fire on
+its schedule. See below for testing before it does.
 
 ## Testing in a throwaway server first
 
 1. Create a new Discord server just for testing (Discord → `+` → Create My
    Own → For me and my friends). It's free and instant.
-2. Do steps 1–5 above against that server (its own bot token isn't
-   needed — same bot application and token work in any server it's
-   invited to; you can also just reuse the same bot and swap `GUILD_ID` in
-   `.env` when you're ready to point it at the real server).
-3. Set up a `Personal Goals` category with one or two test channels, the
-   emojis, and a `#bot` channel, same as above.
-4. Run the bot (`npm start`) and use the manual commands below to try the
-   whole flow in a couple of minutes instead of waiting for Sunday.
-5. Once it behaves the way you want, invite it to the real server, update
-   `GUILD_ID` (and re-create the emojis there if they don't already exist),
-   and restart.
+2. Do steps 1–4 above against that server.
+3. Do step 5 against this same repo (a second bot token isn't needed if
+   you want to reuse one bot application across servers — just point
+   `GUILD_ID` at whichever server you're testing against right now).
+4. Use the manual workflows below to try the whole flow in a couple of
+   minutes instead of waiting for Sunday.
+5. Once it behaves the way you want, invite the bot to the real server,
+   update the `GUILD_ID` secret, and re-create the emojis there if they
+   don't already exist.
 
-### Manual test commands (works in either server)
+### Manual test runs (GitHub Actions tab)
 
-As a server admin, type these in any channel the bot can see:
+Go to this repo's **Actions** tab. Three workflows are available, each
+runnable on demand via **Run workflow**:
 
-- `!goals post` — posts this week's dated message to every goal channel
-  right now, and starts tracking it.
-- `!goals score` — scores whatever message is currently tracked in each
-  goal channel right now, and posts the results table to `#bot`.
-- `!goals run` — runs score, then post (what the full weekly schedule
-  does), back to back.
+- **Manual - post weekly messages** — posts this week's dated message to
+  every goal channel right now, and starts tracking it.
+- **Manual - score tracked messages** — scores whatever message is
+  currently tracked in each goal channel right now, and posts the results
+  table to `#bot`.
+- **Weekly goals job** — the real scheduled workflow; also runnable
+  manually (score, then post, back to back).
 
-A realistic test: `!goals post`, react to the new message in a test
-channel with a few of the tracked emojis, then `!goals score` to see the
-results table pick up your reactions.
+A realistic test: run **post**, react to the new message in a test channel
+with a few of the tracked emojis, then run **score** to see the results
+table pick up your reactions.
 
-### Testing via the schedule instead
+### Testing locally instead
 
-If you'd rather see the actual cron firing rather than triggering it by
-hand, set `SCORE_CRON` / `POST_CRON` in `.env` to a couple of minutes from
-now (cron format is `minute hour day month weekday`, evaluated in
-`TIMEZONE`), then `npm start` and wait. For example, if it's currently
-2:03 PM Central:
-
-```
-SCORE_CRON=5 14 * * *
-POST_CRON=7 14 * * *
+```bash
+cp .env.example .env   # fill in DISCORD_TOKEN and GUILD_ID
+npm install
+npm run post    # or: npm run score / npm run run
 ```
 
-Remember to set both back to their weekly defaults (or remove them from
-`.env` to fall back to the defaults) before running it for real.
+This reads/writes the same `data/state.json` used by the workflow, so
+commit or discard changes to it afterward as appropriate.
 
 ## Notes
 
 - The very first run has nothing to score yet (no prior message is
-  tracked), so `!goals score` / the score schedule will report 0 for every
-  channel until a post has happened at least once.
+  tracked), so scoring will report 0 for every channel until a post has
+  happened at least once.
 - Only reactions from the tracked emoji names count; any other emoji on
   the post is ignored.
-- The results table always has exactly one row per goal channel. If no one
-  reacted (or there was no previous post to score), that channel shows 0.
-- `!goals score` is safe to run more than once — it just re-scores
-  whatever message is currently tracked, it doesn't advance anything.
+- The results table always has exactly one row per goal channel.
+- Scoring is safe to run more than once — it just re-scores whatever
+  message is currently tracked, it doesn't advance anything. Only posting
+  advances the tracked message.
+- GitHub Actions' `schedule` trigger only guarantees the workflow won't
+  run *before* the scheduled time — during high load it can be delayed by
+  several minutes. Not an issue for a weekly personal-goals bot.

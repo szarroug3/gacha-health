@@ -1,48 +1,45 @@
-const { ChannelType } = require('discord.js');
 const { getWeekLabel } = require('./dateUtils');
 const { loadState, saveState } = require('./storage');
 const config = require('./config');
+const discord = require('./discordApi');
 
-async function getGoalChannels(guild) {
-  await guild.channels.fetch();
+const CHANNEL_TYPE_TEXT = 0;
+const CHANNEL_TYPE_CATEGORY = 4;
 
-  const category = guild.channels.cache.find(
-    (c) =>
-      c.type === ChannelType.GuildCategory &&
-      c.name.toLowerCase() === config.categoryName.toLowerCase()
+async function getChannels() {
+  const channels = await discord.getGuildChannels(config.guildId);
+
+  const category = channels.find(
+    (c) => c.type === CHANNEL_TYPE_CATEGORY && c.name.toLowerCase() === config.categoryName.toLowerCase()
   );
   if (!category) {
     throw new Error(`Category "${config.categoryName}" not found in guild`);
   }
 
-  return [...guild.channels.cache.values()]
-    .filter((c) => c.parentId === category.id && c.type === ChannelType.GuildText)
+  const goalChannels = channels
+    .filter((c) => c.parent_id === category.id && c.type === CHANNEL_TYPE_TEXT)
     .sort((a, b) => a.position - b.position);
-}
 
-function getResultsChannel(guild) {
-  const resultsChannel = guild.channels.cache.find(
-    (c) =>
-      c.type === ChannelType.GuildText &&
-      c.name.toLowerCase() === config.resultsChannelName.toLowerCase()
+  const resultsChannel = channels.find(
+    (c) => c.type === CHANNEL_TYPE_TEXT && c.name.toLowerCase() === config.resultsChannelName.toLowerCase()
   );
   if (!resultsChannel) {
     throw new Error(`Results channel "#${config.resultsChannelName}" not found in guild`);
   }
-  return resultsChannel;
+
+  return { goalChannels, resultsChannel };
 }
 
 // Posts the new dated message (e.g. "9/13-9/19") to every goal channel and
 // starts tracking it as the message scoreLastWeek() should score next time.
-async function postWeeklyMessages(client) {
-  const guild = await client.guilds.fetch(config.guildId);
-  const goalChannels = await getGoalChannels(guild);
+async function postWeeklyMessages() {
+  const { goalChannels } = await getChannels();
 
   const state = loadState();
   const newWeekLabel = getWeekLabel(config.timezone);
 
   for (const channel of goalChannels) {
-    const newMessage = await channel.send(newWeekLabel);
+    const newMessage = await discord.sendMessage(channel.id, newWeekLabel);
     state.channels[channel.id] = { lastMessageId: newMessage.id, weekLabel: newWeekLabel };
   }
 
@@ -55,10 +52,9 @@ async function postWeeklyMessages(client) {
 // postWeeklyMessages() is what advances the tracked message to a new one.
 // Safe to run more than once (e.g. while testing): it just re-scores
 // whatever message is currently tracked.
-async function scoreLastWeek(client) {
-  const guild = await client.guilds.fetch(config.guildId);
-  const goalChannels = await getGoalChannels(guild);
-  const resultsChannel = getResultsChannel(guild);
+async function scoreLastWeek() {
+  const { goalChannels, resultsChannel } = await getChannels();
+  const botUser = await discord.getCurrentUser();
 
   const state = loadState();
   const resultsRows = [];
@@ -70,8 +66,8 @@ async function scoreLastWeek(client) {
 
     if (channelState.lastMessageId) {
       try {
-        const message = await channel.messages.fetch(channelState.lastMessageId);
-        points = await tallyPoints(message, client.user.id);
+        const message = await discord.getMessage(channel.id, channelState.lastMessageId);
+        points = await tallyPoints(channel.id, message, botUser.id);
         scoredWeekLabel = channelState.weekLabel;
       } catch (err) {
         console.error(`Could not fetch/tally message for #${channel.name}: ${err.message}`);
@@ -81,29 +77,30 @@ async function scoreLastWeek(client) {
     resultsRows.push({ channel: channel.name, points });
   }
 
-  await resultsChannel.send(formatResultsTable(resultsRows, scoredWeekLabel));
+  await discord.sendMessage(resultsChannel.id, formatResultsTable(resultsRows, scoredWeekLabel));
   return resultsRows;
 }
 
 // Runs both steps in the right order: score the outgoing week, then post
-// the new one. Used by the "!goals run" manual command.
-async function runWeeklyJob(client) {
-  await scoreLastWeek(client);
-  await postWeeklyMessages(client);
+// the new one. Used for the weekly scheduled run.
+async function runWeeklyJob() {
+  await scoreLastWeek();
+  await postWeeklyMessages();
 }
 
 // Sums points from every tracked-emoji reaction on the message, from any
 // non-bot user (a channel's post is scored as a single total, not per-user).
-async function tallyPoints(message, botUserId) {
+async function tallyPoints(channelId, message, botUserId) {
   let total = 0;
 
-  for (const reaction of message.reactions.cache.values()) {
+  for (const reaction of message.reactions || []) {
     const emojiName = (reaction.emoji.name || '').toLowerCase();
     const value = config.EMOJI_POINTS[emojiName];
     if (!value) continue;
 
-    const users = await reaction.users.fetch();
-    for (const user of users.values()) {
+    const emojiIdentifier = reaction.emoji.id ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
+    const users = await discord.getReactionUsers(channelId, message.id, emojiIdentifier);
+    for (const user of users) {
       if (user.bot || user.id === botUserId) continue;
       total += value;
     }

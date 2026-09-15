@@ -2,18 +2,17 @@
   "name": "gacha-health",
   "version": "1.0.0",
   "private": true,
-  "description": "Weekly Discord goals tracker bot",
-  "main": "src/index.js",
+  "description": "Weekly Discord goals tracker, run via scheduled GitHub Actions",
   "scripts": {
-    "start": "node src/index.js"
+    "post": "node src/post.js",
+    "score": "node src/score.js",
+    "run": "node src/run.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
-    "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
-    "luxon": "^3.4.4",
-    "node-cron": "^3.0.3"
+    "luxon": "^3.4.4"
   }
 }
