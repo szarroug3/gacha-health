@@ -3,8 +3,8 @@
     "1549240553227554836": {
       "lastMessageId": "1549270509982720053",
       "weekLabel": "9/14-9/20",
-      "totalPoints": 5,
-      "creditedMessageId": "1549262865091788881"
+      "totalPoints": 10,
+      "creditedMessageId": "1549270509982720053"
     },
     "1549240615550587010": {
       "lastMessageId": "1549247698857758824",
@@ -12,7 +12,9 @@
     },
     "1549270402684166174": {
       "lastMessageId": "1549270511320571936",
-      "weekLabel": "9/14-9/20"
+      "weekLabel": "9/14-9/20",
+      "totalPoints": 6,
+      "creditedMessageId": "1549270511320571936"
     }
   }
 }
