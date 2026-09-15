@@ -16,16 +16,18 @@ async function getChannels() {
     throw new Error(`Category "${config.categoryName}" not found in guild`);
   }
 
-  const goalChannels = channels
-    .filter((c) => c.parent_id === category.id && c.type === CHANNEL_TYPE_TEXT)
-    .sort((a, b) => a.position - b.position);
-
   const resultsChannel = channels.find(
     (c) => c.type === CHANNEL_TYPE_TEXT && c.name.toLowerCase() === config.resultsChannelName.toLowerCase()
   );
   if (!resultsChannel) {
     throw new Error(`Results channel "#${config.resultsChannelName}" not found in guild`);
   }
+
+  // Exclude the results channel even if it happens to live under the goals
+  // category, so it never gets a dated weekly post by mistake.
+  const goalChannels = channels
+    .filter((c) => c.parent_id === category.id && c.type === CHANNEL_TYPE_TEXT && c.id !== resultsChannel.id)
+    .sort((a, b) => a.position - b.position);
 
   return { goalChannels, resultsChannel };
 }
