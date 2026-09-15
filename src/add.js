@@ -1,21 +1,28 @@
 const { addPoints } = require('./weeklyJob');
+const { makeResponder } = require('./interactionRespond');
 
 const channel = process.env.ADD_CHANNEL;
 const amount = Number(process.env.ADD_AMOUNT);
 const note = process.env.ADD_NOTE || undefined;
+const respond = makeResponder();
 
-if (!channel) {
-  console.error('ADD_CHANNEL is required');
-  process.exit(1);
-}
-if (!Number.isInteger(amount) || amount <= 0) {
-  console.error(`ADD_AMOUNT must be a positive whole number, got "${process.env.ADD_AMOUNT}"`);
-  process.exit(1);
+async function main() {
+  if (!channel) {
+    throw new Error('ADD_CHANNEL is required');
+  }
+  if (!Number.isInteger(amount) || amount <= 0) {
+    throw new Error(`ADD_AMOUNT must be a positive whole number, got "${process.env.ADD_AMOUNT}"`);
+  }
+
+  const result = await addPoints(channel, amount, note);
+  console.log('Added:', result);
+  await respond(
+    `Added **${amount}** point${amount === 1 ? '' : 's'} to **${result.channel}**. New total: **${result.total}**.`
+  );
 }
 
-addPoints(channel, amount, note)
-  .then((result) => console.log('Added:', result))
-  .catch((err) => {
-    console.error('Add failed:', err.message);
-    process.exit(1);
-  });
+main().catch(async (err) => {
+  console.error('Add failed:', err.message);
+  await respond(`Failed: ${err.message}`);
+  process.exit(1);
+});

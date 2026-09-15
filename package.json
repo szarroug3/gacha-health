@@ -10,7 +10,8 @@
     "seed": "node src/seed.js",
     "spend": "node src/spend.js",
     "add": "node src/add.js",
-    "total": "node src/total.js"
+    "total": "node src/total.js",
+    "register-commands": "node scripts/register-commands.js"
   },
   "engines": {
     "node": ">=20"

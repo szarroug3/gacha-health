@@ -18,6 +18,7 @@ const EMOJI_POINTS = {
 module.exports = {
   token: process.env.DISCORD_TOKEN,
   guildId: process.env.GUILD_ID,
+  applicationId: process.env.DISCORD_APPLICATION_ID,
   categoryName: process.env.CATEGORY_NAME || 'Personal Goals',
   resultsChannelName: process.env.RESULTS_CHANNEL_NAME || 'bot',
   timezone: process.env.TIMEZONE || 'America/Chicago',

@@ -12,6 +12,12 @@ on:
       note:
         description: 'Optional note (e.g. what it was spent on)'
         required: false
+      interaction_token:
+        description: 'Internal: set by the /spend Discord command webhook, leave blank for manual runs'
+        required: false
+      application_id:
+        description: 'Internal: set by the /spend Discord command webhook, leave blank for manual runs'
+        required: false
 
 permissions:
   contents: write
@@ -40,6 +46,8 @@ jobs:
           SPEND_CHANNEL: ${{ inputs.channel }}
           SPEND_AMOUNT: ${{ inputs.amount }}
           SPEND_NOTE: ${{ inputs.note }}
+          INTERACTION_TOKEN: ${{ inputs.interaction_token }}
+          DISCORD_APPLICATION_ID: ${{ inputs.application_id }}
 
       - name: Commit updated state
         run: |

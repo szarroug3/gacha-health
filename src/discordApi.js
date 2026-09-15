@@ -50,6 +50,16 @@ function getRecentMessages(channelId, limit = 25) {
   return discordFetch(`/channels/${channelId}/messages?limit=${limit}`);
 }
 
+// Edits the placeholder ("thinking...") response Discord shows after a
+// slash command is deferred. Auth is via the interaction token in the URL
+// itself, not the bot token, but discordFetch's Bot header is harmless here.
+function editInteractionResponse(applicationId, interactionToken, content) {
+  return discordFetch(`/webhooks/${applicationId}/${interactionToken}/messages/@original`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content }),
+  });
+}
+
 // Custom emoji must be identified as "name:id"; unicode emoji just uses the
 // character itself. Paginates in case a reaction has >100 users.
 async function getReactionUsers(channelId, messageId, emojiIdentifier) {
@@ -77,4 +87,5 @@ module.exports = {
   getMessage,
   getRecentMessages,
   getReactionUsers,
+  editInteractionResponse,
 };

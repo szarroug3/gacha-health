@@ -1,0 +1,11 @@
+name = "gacha-health-webhook"
+main = "index.js"
+compatibility_date = "2024-09-23"
+
+[vars]
+GITHUB_OWNER = "szarroug3"
+GITHUB_REPO = "gacha-health"
+
+# Set with `wrangler secret put <NAME>` - do not put these here:
+#   DISCORD_PUBLIC_KEY - from the Discord app's General Information page
+#   GITHUB_TOKEN        - a token with permission to trigger workflow runs

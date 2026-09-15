@@ -6,6 +6,12 @@ on:
       channel:
         description: 'Goal channel name (e.g. batsy)'
         required: true
+      interaction_token:
+        description: 'Internal: set by the /total Discord command webhook, leave blank for manual runs'
+        required: false
+      application_id:
+        description: 'Internal: set by the /total Discord command webhook, leave blank for manual runs'
+        required: false
 
 jobs:
   run:
@@ -27,3 +33,5 @@ jobs:
           RESULTS_CHANNEL_NAME: ${{ vars.RESULTS_CHANNEL_NAME }}
           TIMEZONE: ${{ vars.TIMEZONE }}
           TOTAL_CHANNEL: ${{ inputs.channel }}
+          INTERACTION_TOKEN: ${{ inputs.interaction_token }}
+          DISCORD_APPLICATION_ID: ${{ inputs.application_id }}

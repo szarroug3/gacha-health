@@ -37,6 +37,11 @@ you can also adjust or check a total by hand from the **Actions** tab →
 All three take a channel name (and spend/add also take an amount and an
 optional note), and post a confirmation to `#bot`.
 
+They can also be run as real Discord slash commands (`/spend`, `/add`,
+`/total`) instead of from the Actions tab — see
+[Setting up slash commands](#setting-up-slash-commands) below. That part's
+optional; everything above works without it.
+
 ## Setup
 
 ### 1. Create the bot application
@@ -157,3 +162,88 @@ commit or discard changes to it afterward as appropriate.
 - GitHub Actions' `schedule` trigger only guarantees the workflow won't
   run *before* the scheduled time — during high load it can be delayed by
   several minutes. Not an issue for a weekly personal-goals bot.
+
+## Setting up slash commands
+
+Optional. This makes `/spend`, `/add`, and `/total` work as real Discord
+slash commands instead of only from the Actions tab. It needs one small
+extra piece: a [Cloudflare Worker](https://developers.cloudflare.com/workers/)
+(free, no card required, in [webhook/](webhook)) that receives the command
+from Discord and triggers the matching GitHub Actions workflow.
+
+How it works: you type `/spend` in Discord → Discord sends it to the
+Worker → the Worker tells GitHub to run `spend.yml` with the values you
+typed → the workflow runs (same as a manual Actions run) → it edits your
+Discord message with the result once done (usually a few seconds).
+
+### 1. Get the Discord app's public key and application ID
+
+Developer Portal → your application → **General Information**. Copy the
+**Public Key** and the **Application ID** — you'll need both below.
+
+### 2. Deploy the Cloudflare Worker
+
+```bash
+cd webhook
+npm install
+npx wrangler login          # opens a browser to sign into (or create) a free Cloudflare account
+npx wrangler deploy
+```
+
+The deploy output prints the Worker's URL (`https://gacha-health-webhook.<your-subdomain>.workers.dev`) — save it, you'll need it in step 4.
+
+### 3. Set the Worker's secrets
+
+```bash
+npx wrangler secret put DISCORD_PUBLIC_KEY
+# paste the Public Key from step 1
+
+npx wrangler secret put GITHUB_TOKEN
+# paste a GitHub token (see below) that can trigger workflow runs on this repo
+```
+
+For `GITHUB_TOKEN`: create a
+[fine-grained personal access token](https://github.com/settings/personal-access-tokens/new)
+scoped to just this repository, with **Actions: Read and write** and
+**Contents: Read and write** permissions (Contents write is needed because
+triggering a dispatch also lets the workflow push its state commit). Treat
+this token like a password — it only lives in Cloudflare's secret store,
+never in this repo.
+
+If `webhook/wrangler.toml`'s `GITHUB_OWNER`/`GITHUB_REPO` don't match your
+repo (e.g. you forked it), edit those two lines before deploying.
+
+### 4. Point Discord at the Worker
+
+Developer Portal → your application → **General Information** →
+**Interactions Endpoint URL** → paste the Worker's URL from step 2 → Save.
+Discord immediately sends a test request to verify it; if steps 2–3 are
+done correctly this succeeds right away. If it fails, double check the
+`DISCORD_PUBLIC_KEY` secret matches exactly and redeploy/retry.
+
+### 5. Register the commands
+
+```bash
+cp .env.example .env   # if you haven't already; fill in DISCORD_TOKEN, GUILD_ID, DISCORD_APPLICATION_ID
+npm install
+npm run register-commands
+```
+
+This registers `/spend`, `/add`, `/total` as guild commands (instant,
+rather than the up-to-an-hour delay for global commands) — they'll show up
+in the server right away.
+
+### Troubleshooting
+
+- **Discord rejects the Interactions Endpoint URL**: usually a mismatched
+  `DISCORD_PUBLIC_KEY` secret, or the Worker not deployed yet. Re-run
+  `npx wrangler secret put DISCORD_PUBLIC_KEY` and try saving the URL again.
+- **The command responds "The application did not respond" in Discord**:
+  the Worker's initial response (deferred "thinking...") didn't reach
+  Discord in time, or the GitHub dispatch call failed silently. Check the
+  Worker's logs with `npx wrangler tail` from `webhook/` while running the
+  command again.
+- **Command runs but never updates with a result**: check the
+  corresponding workflow's run in the Actions tab for errors, and confirm
+  `GITHUB_TOKEN`'s fine-grained permissions include both Actions and
+  Contents write access on this repo.

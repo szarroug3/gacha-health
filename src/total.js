@@ -1,15 +1,21 @@
 const { getTotal } = require('./weeklyJob');
+const { makeResponder } = require('./interactionRespond');
 
 const channel = process.env.TOTAL_CHANNEL;
+const respond = makeResponder();
 
-if (!channel) {
-  console.error('TOTAL_CHANNEL is required');
-  process.exit(1);
+async function main() {
+  if (!channel) {
+    throw new Error('TOTAL_CHANNEL is required');
+  }
+
+  const result = await getTotal(channel);
+  console.log('Total:', result);
+  await respond(`**${result.channel}** has **${result.total}** point${result.total === 1 ? '' : 's'}.`);
 }
 
-getTotal(channel)
-  .then((result) => console.log('Total:', result))
-  .catch((err) => {
-    console.error('Total lookup failed:', err.message);
-    process.exit(1);
-  });
+main().catch(async (err) => {
+  console.error('Total lookup failed:', err.message);
+  await respond(`Failed: ${err.message}`);
+  process.exit(1);
+});
