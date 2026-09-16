@@ -17,6 +17,10 @@ Sunday (around 12:00 AM Central), it:
 2. Posts a new message in each of those channels with the new week's date
    range (e.g. `9/13 - 9/19`), and starts tracking it for next week.
 
+It also posts a one-off `@everyone` reminder to `#general` every Saturday
+around 6:00 PM Central: "Make sure to add your points to your weekly
+message before midnight!"
+
 State (which message to score next per channel, and each channel's
 running point total) lives in [data/state.json](data/state.json), which
 the workflow commits back to this repo after each run.
@@ -38,13 +42,17 @@ you can also adjust or check a total by hand from the **Actions** tab →
   without changing anything.
 - **Manual - check all totals** — posts a leaderboard of every goal
   channel's current running total.
+- **Manual - check lifetime totals** — looks up a channel's lifetime
+  points gained and lifetime points spent (separate from the current
+  balance, which is gained minus spent).
 
-Spend/add/transfer/total take a channel name (transfer takes a from/to
-pair instead) plus an amount where relevant, and an optional note; all
-five post a confirmation to `#bot`.
+Spend/add/transfer/total/lifetime take a channel name (transfer takes a
+from/to pair instead) plus an amount where relevant, and an optional
+note; all six post a confirmation to `#bot`.
 
 They can also be run as real Discord slash commands (`/spend`, `/add`,
-`/transfer`, `/total`, `/totals`) instead of from the Actions tab — see
+`/transfer`, `/total`, `/totals`, `/lifetime`) instead of from the
+Actions tab — see
 [Setting up slash commands](#setting-up-slash-commands) below. That part's
 optional; everything above works without it.
 
@@ -62,7 +70,9 @@ optional; everything above works without it.
 Under **OAuth2 → URL Generator**:
 
 - Scopes: `bot`
-- Bot permissions: `View Channels`, `Send Messages`, `Read Message History`
+- Bot permissions: `View Channels`, `Send Messages`, `Read Message History`,
+  `Mention @everyone, @here, and All Roles` (needed for the Saturday
+  reminder's `@everyone` ping to actually notify people)
 
 Open the generated URL and add the bot to the server. **Use a throwaway
 test server first** (see below) before adding it to your real one.
@@ -83,6 +93,8 @@ named exactly (case matters for `Biggoal` and `Weekly`):
   channel under it — that's what gets a weekly dated post.
 - A text channel named `bot` (configurable, can be anywhere) — that's
   where the weekly results table gets posted.
+- A text channel named `general` (configurable, can be anywhere) — that's
+  where the Saturday `@everyone` reminder gets posted.
 
 ### 5. Add repo secrets/variables
 
@@ -98,6 +110,7 @@ Optional, under **Variables** (only add if you want non-default values):
 
 - `CATEGORY_NAME` — defaults to `Personal Goals`
 - `RESULTS_CHANNEL_NAME` — defaults to `bot`
+- `REMINDER_CHANNEL_NAME` — defaults to `general`
 - `TIMEZONE` — defaults to `America/Chicago`
 
 ### 6. Enable the workflow
@@ -172,9 +185,9 @@ commit or discard changes to it afterward as appropriate.
 
 ## Setting up slash commands
 
-Optional. This makes `/spend`, `/add`, `/transfer`, `/total`, and
-`/totals` work as real Discord slash commands instead of only from the
-Actions tab. It needs one small
+Optional. This makes `/spend`, `/add`, `/transfer`, `/total`, `/totals`,
+and `/lifetime` work as real Discord slash commands instead of only from
+the Actions tab. It needs one small
 extra piece: a [Cloudflare Worker](https://developers.cloudflare.com/workers/)
 (free, no card required, in [webhook/](webhook)) that receives the command
 from Discord and triggers the matching GitHub Actions workflow.
@@ -237,9 +250,9 @@ npm install
 npm run register-commands
 ```
 
-This registers `/spend`, `/add`, `/transfer`, `/total`, `/totals` as
-guild commands (instant, rather than the up-to-an-hour delay for global
-commands) — they'll show up in the server right away.
+This registers `/spend`, `/add`, `/transfer`, `/total`, `/totals`,
+`/lifetime` as guild commands (instant, rather than the up-to-an-hour
+delay for global commands) — they'll show up in the server right away.
 
 ### Troubleshooting
 

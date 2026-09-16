@@ -10,6 +10,7 @@ const COMMANDS = {
   transfer: { workflow: 'transfer.yml', options: ['from', 'to', 'amount', 'note'] },
   total: { workflow: 'total.yml', options: ['channel'] },
   totals: { workflow: 'totals.yml', options: [] },
+  lifetime: { workflow: 'lifetime.yml', options: ['channel'] },
 };
 
 export default {

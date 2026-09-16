@@ -1,0 +1,31 @@
+name: Saturday reminder
+
+on:
+  schedule:
+    # ~Saturday 6:00 PM Central. GitHub Actions cron is UTC-only, so this
+    # drifts by an hour across the DST changeover twice a year - fine for
+    # a casual reminder. Currently set for CDT (UTC-5); during CST
+    # (Nov-Mar) it fires around 5:00 PM Central instead.
+    - cron: '0 23 * * 6'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run remind
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          GUILD_ID: ${{ secrets.GUILD_ID }}
+          CATEGORY_NAME: ${{ vars.CATEGORY_NAME }}
+          RESULTS_CHANNEL_NAME: ${{ vars.RESULTS_CHANNEL_NAME }}
+          REMINDER_CHANNEL_NAME: ${{ vars.REMINDER_CHANNEL_NAME }}
+          TIMEZONE: ${{ vars.TIMEZONE }}

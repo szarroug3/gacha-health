@@ -21,6 +21,7 @@ module.exports = {
   applicationId: process.env.DISCORD_APPLICATION_ID,
   categoryName: process.env.CATEGORY_NAME || 'Personal Goals',
   resultsChannelName: process.env.RESULTS_CHANNEL_NAME || 'bot',
+  reminderChannelName: process.env.REMINDER_CHANNEL_NAME || 'general',
   timezone: process.env.TIMEZONE || 'America/Chicago',
   EMOJI_POINTS,
 };

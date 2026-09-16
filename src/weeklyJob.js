@@ -87,6 +87,7 @@ async function scoreLastWeek() {
 
         if (channelState.creditedMessageId !== channelState.lastMessageId) {
           channelState.totalPoints = (channelState.totalPoints || 0) + lastWeekPoints;
+          channelState.lifetimeGained = (channelState.lifetimeGained || 0) + lastWeekPoints;
           channelState.creditedMessageId = channelState.lastMessageId;
           state.channels[channel.id] = channelState;
         }
@@ -132,6 +133,7 @@ async function spendPoints(channelName, amount, note, { skipChannelMessage = fal
   }
 
   channelState.totalPoints = currentTotal - amount;
+  channelState.lifetimeSpent = (channelState.lifetimeSpent || 0) + amount;
   state.channels[channel.id] = channelState;
   saveState(state);
 
@@ -168,7 +170,9 @@ async function transferPoints(fromChannelName, toChannelName, amount, note, { sk
   }
 
   fromState.totalPoints = fromTotal - amount;
+  fromState.lifetimeSpent = (fromState.lifetimeSpent || 0) + amount;
   toState.totalPoints = (toState.totalPoints || 0) + amount;
+  toState.lifetimeGained = (toState.lifetimeGained || 0) + amount;
   state.channels[fromChannel.id] = fromState;
   state.channels[toChannel.id] = toState;
   saveState(state);
@@ -200,6 +204,7 @@ async function addPoints(channelName, amount, note, { skipChannelMessage = false
   const state = loadState();
   const channelState = state.channels[channel.id] || {};
   channelState.totalPoints = (channelState.totalPoints || 0) + amount;
+  channelState.lifetimeGained = (channelState.lifetimeGained || 0) + amount;
   state.channels[channel.id] = channelState;
   saveState(state);
 
@@ -230,6 +235,29 @@ async function getTotal(channelName, { skipChannelMessage = false } = {}) {
   return { channel: channel.name, total };
 }
 
+// Looks up a goal channel's lifetime gained/spent totals and posts them to
+// the results channel. Read-only - doesn't touch state. gained - spent
+// should always equal the channel's current totalPoints balance.
+async function getLifetime(channelName, { skipChannelMessage = false } = {}) {
+  const { goalChannels, resultsChannel } = await getChannels();
+  const channel = findGoalChannel(goalChannels, channelName);
+
+  const state = loadState();
+  const channelState = state.channels[channel.id] || {};
+  const gained = channelState.lifetimeGained || 0;
+  const spent = channelState.lifetimeSpent || 0;
+  const net = channelState.totalPoints || 0;
+
+  if (!skipChannelMessage) {
+    await discord.sendMessage(
+      resultsChannel.id,
+      `**${channel.name}** — Lifetime gained: **${gained}**, Lifetime spent: **${spent}**, Current total: **${net}**.`
+    );
+  }
+
+  return { channel: channel.name, gained, spent, net };
+}
+
 // Looks up every goal channel's current running total and posts a
 // leaderboard to the results channel. Read-only - doesn't touch state.
 async function getAllTotals({ skipChannelMessage = false } = {}) {
@@ -246,6 +274,26 @@ async function getAllTotals({ skipChannelMessage = false } = {}) {
   }
 
   return rows;
+}
+
+// Posts a single @everyone reminder to the reminder channel (separate from
+// the results channel - e.g. #general, where everyone actually hangs out).
+// Requires the bot to have the "Mention @everyone, @here, and All Roles"
+// permission in that channel, or Discord will silently render it as plain
+// text with no ping.
+async function postReminder() {
+  const channels = await discord.getGuildChannels(config.guildId);
+  const reminderChannel = channels.find(
+    (c) => c.type === CHANNEL_TYPE_TEXT && c.name.toLowerCase() === config.reminderChannelName.toLowerCase()
+  );
+  if (!reminderChannel) {
+    throw new Error(`Reminder channel "#${config.reminderChannelName}" not found in guild`);
+  }
+
+  await discord.sendMessage(
+    reminderChannel.id,
+    '@everyone Make sure to add your points to your weekly message before midnight!'
+  );
 }
 
 // Runs both steps in the right order: score the outgoing week, then post
@@ -360,4 +408,6 @@ module.exports = {
   addPoints,
   transferPoints,
   getTotal,
+  getLifetime,
+  postReminder,
 };

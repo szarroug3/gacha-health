@@ -13,6 +13,8 @@
     "transfer": "node src/transfer.js",
     "total": "node src/total.js",
     "totals": "node src/totals.js",
+    "lifetime": "node src/lifetime.js",
+    "remind": "node src/remind.js",
     "register-commands": "node scripts/register-commands.js"
   },
   "engines": {
