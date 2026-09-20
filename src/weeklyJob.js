@@ -56,15 +56,15 @@ function sortChannelsByPosition(state, goalChannels) {
 
 // If `channel` is brand new to state.json (no entry yet at all) and its
 // name matches an orphaned entry - one whose channel id is no longer
-// among goalChannels, e.g. someone quit and the owner later created them
-// a new channel with the same name - migrates that old total onto the
-// new channel and removes the orphan, so leaving doesn't cost someone
-// their points if they come back. Only totalPoints/lifetime* carry over;
-// the new channel still gets its own fresh tracked message from
-// seedTrackedMessages()/postWeeklyMessages(). Posts an announcement so
-// the migration is visible rather than a silent state change. Returns
-// true if a revival happened.
-async function reviveIfOrphaned(state, channel, liveIds, resultsChannel) {
+// among liveIds, e.g. someone quit and the owner later created them a
+// new channel with the same name - migrates that old total onto the new
+// channel and removes the orphan, so leaving doesn't cost someone their
+// points if they come back. Only totalPoints/lifetime* carry over; the
+// new channel still gets its own fresh tracked message from
+// seedTrackedMessages()/postWeeklyMessages(). Silent - the caller reports
+// it as part of the weekly "Welcomed/Returned/Left" summary instead of
+// announcing each migration individually. Returns true if revived.
+function reviveIfOrphaned(state, channel, liveIds) {
   if (state.channels[channel.id]) return false;
 
   const orphan = Object.entries(state.channels).find(
@@ -73,21 +73,13 @@ async function reviveIfOrphaned(state, channel, liveIds, resultsChannel) {
   if (!orphan) return false;
 
   const [orphanId, orphanData] = orphan;
-  const revived = {
+  state.channels[channel.id] = {
     name: channel.name,
     totalPoints: orphanData.totalPoints || 0,
     lifetimeGained: orphanData.lifetimeGained || 0,
     ...(orphanData.lifetimeSpent ? { lifetimeSpent: orphanData.lifetimeSpent } : {}),
   };
-  state.channels[channel.id] = revived;
   delete state.channels[orphanId];
-
-  await discord.sendMessage(
-    resultsChannel.id,
-    `🔄 **#${channel.name}** looks like a returning member - restored their prior total: ` +
-      `**${revived.totalPoints}** ${pointsSuffix(revived.totalPoints)} ` +
-      `(lifetime gained: ${revived.lifetimeGained}, spent: ${revived.lifetimeSpent || 0}).`
-  );
   return true;
 }
 
@@ -99,7 +91,7 @@ async function reviveIfOrphaned(state, channel, liveIds, resultsChannel) {
 // into every channel. force: true reprints regardless - e.g. to replace a
 // deleted message, or after correcting state by hand.
 async function postWeeklyMessages({ force = false } = {}) {
-  const { goalChannels, resultsChannel } = await getChannels();
+  const { goalChannels } = await getChannels();
 
   const state = loadState();
   const newWeekLabel = getWeekLabel(config.timezone);
@@ -108,7 +100,7 @@ async function postWeeklyMessages({ force = false } = {}) {
   const liveIds = new Set(goalChannels.map((c) => c.id));
 
   for (const channel of goalChannels) {
-    await reviveIfOrphaned(state, channel, liveIds, resultsChannel);
+    reviveIfOrphaned(state, channel, liveIds);
     const channelState = state.channels[channel.id];
     if (!force && channelState?.weekLabel === newWeekLabel) {
       skipped.push(channel.name);
@@ -453,9 +445,16 @@ async function findWeekLabelMessage(channelId, botUserId) {
 // never been scored is safe to re-point at an earlier real message
 // instead. Runs automatically as part of runWeeklyJob(), so a brand-new
 // channel gets adopted without anyone having to remember to run this by
-// hand - and stays quiet (no results-channel post) on a normal week
-// where there's nothing to seed and nothing to flag, so it doesn't spam
-// the channel every Sunday.
+// hand.
+//
+// Also where membership changes get tracked and announced: a channel
+// brand new to state.json is "welcomed" (or "returned" if reviveIfOrphaned
+// finds a name match), and a channel present in state.liveChannelIds
+// (the live set as of the last time this ran) but missing from the
+// current live set has "left". Posts one "Welcomed/Returned/Left" summary
+// when any of those happened; otherwise stays fully quiet - the seeding
+// mechanics themselves (which message got adopted, which couldn't be
+// matched) aren't posted anywhere, just reflected in what gets tracked.
 async function seedTrackedMessages() {
   const { goalChannels, resultsChannel } = await getChannels();
   const botUser = await discord.getCurrentUser();
@@ -463,10 +462,20 @@ async function seedTrackedMessages() {
   const seeded = [];
   const alreadyTracked = [];
   const noMatch = [];
+  const welcomed = [];
+  const returned = [];
   const liveIds = new Set(goalChannels.map((c) => c.id));
 
   for (const channel of goalChannels) {
-    await reviveIfOrphaned(state, channel, liveIds, resultsChannel);
+    const isNew = !state.channels[channel.id];
+    if (isNew) {
+      if (reviveIfOrphaned(state, channel, liveIds)) {
+        returned.push(channel.name);
+      } else {
+        welcomed.push(channel.name);
+      }
+    }
+
     const channelState = state.channels[channel.id];
     if (channelState?.creditedMessageId) {
       alreadyTracked.push(channel.name);
@@ -486,30 +495,25 @@ async function seedTrackedMessages() {
     seeded.push({ channel: channel.name, weekLabel });
   }
 
+  const previousLiveIds = state.liveChannelIds || [];
+  const left = previousLiveIds.filter((id) => !liveIds.has(id)).map((id) => state.channels[id]?.name || id);
+  state.liveChannelIds = [...liveIds];
+
   sortChannelsByPosition(state, goalChannels);
   saveState(state);
-  if (seeded.length > 0 || noMatch.length > 0) {
-    await discord.sendMessage(resultsChannel.id, buildSeedSummary(seeded, alreadyTracked, noMatch));
-  }
-  return { seeded, alreadyTracked, noMatch };
+
+  const membershipSummary = buildMembershipSummary(welcomed, returned, left);
+  if (membershipSummary) await discord.sendMessage(resultsChannel.id, membershipSummary);
+
+  return { seeded, alreadyTracked, noMatch, welcomed, returned, left };
 }
 
-function buildSeedSummary(seeded, alreadyTracked, noMatch) {
-  if (seeded.length === 0 && alreadyTracked.length === 0 && noMatch.length === 0) {
-    return 'Seed: no goal channels found.';
-  }
-
-  const lines = ['**Seed results**'];
-  if (seeded.length > 0) {
-    lines.push(`Seeded: ${seeded.map((s) => `${s.channel} (${s.weekLabel})`).join(', ')}`);
-  }
-  if (alreadyTracked.length > 0) {
-    lines.push(`Already tracked, left alone: ${alreadyTracked.join(', ')}`);
-  }
-  if (noMatch.length > 0) {
-    lines.push(`⚠️ No matching "M/D-M/D" message found: ${noMatch.join(', ')}`);
-  }
-  return lines.join('\n');
+function buildMembershipSummary(welcomed, returned, left) {
+  const lines = [];
+  if (welcomed.length > 0) lines.push(`Welcomed this week: ${welcomed.join(', ')}`);
+  if (returned.length > 0) lines.push(`Returned this week: ${returned.join(', ')}`);
+  if (left.length > 0) lines.push(`Left this week: ${left.join(', ')}`);
+  return lines.length > 0 ? lines.join('\n') : null;
 }
 
 // Sums points from every tracked emoji present on the message (each
