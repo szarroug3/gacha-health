@@ -331,12 +331,17 @@ async function findWeekLabelMessage(channelId, botUserId) {
   }
 }
 
-// For channels the bot isn't already tracking (e.g. a human posted this
-// week's date-range message before the bot ever ran there), find the most
-// recent human-posted message that looks like "9/13-9/19" and adopt it, so
-// scoring picks up reactions already on it. Never overwrites a channel
-// that's already tracked. Posts a summary to the results channel so a
-// channel that couldn't be matched doesn't fail silently.
+// For channels the bot isn't tracking a scored message for yet (e.g. a
+// human posted this week's date-range message before the bot ever ran
+// there, or postWeeklyMessages() gave the channel its first-ever tracked
+// message before it had ever been seeded), find the most recent
+// human-posted message that looks like "9/13-9/19" and adopt it, so
+// scoring picks up reactions already on it. A channel counts as "already
+// tracked" - and is left alone - only once it has been credited at least
+// once (creditedMessageId set); a channel whose only tracked message has
+// never been scored is safe to re-point at an earlier real message
+// instead. Posts a summary to the results channel so a channel that
+// couldn't be matched doesn't fail silently.
 async function seedTrackedMessages() {
   const { goalChannels, resultsChannel } = await getChannels();
   const botUser = await discord.getCurrentUser();
@@ -346,7 +351,8 @@ async function seedTrackedMessages() {
   const noMatch = [];
 
   for (const channel of goalChannels) {
-    if (state.channels[channel.id]?.lastMessageId) {
+    const channelState = state.channels[channel.id];
+    if (channelState?.creditedMessageId) {
       alreadyTracked.push(channel.name);
       continue;
     }
@@ -358,7 +364,9 @@ async function seedTrackedMessages() {
     }
 
     const weekLabel = match.content.trim();
-    state.channels[channel.id] = { lastMessageId: match.id, weekLabel };
+    // Merge rather than replace - preserves totalPoints/lifetimeGained a
+    // channel may already have from a manual /add, /spend, or /transfer.
+    state.channels[channel.id] = { ...(channelState || {}), lastMessageId: match.id, weekLabel };
     seeded.push({ channel: channel.name, weekLabel });
   }
 
