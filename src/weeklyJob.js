@@ -306,33 +306,23 @@ async function runWeeklyJob() {
   await postWeeklyMessages();
 }
 
-// How far back seedTrackedMessages() will page through a channel's history
-// looking for a date-range message, in case of a heavily-chatted channel
-// where the original human-posted message has scrolled past the most
-// recent page.
-const SEED_LOOKBACK_LIMIT = 1000;
-
-// Pages backward through a channel's history (newest first, 100 at a time)
-// looking for a message matching WEEK_LABEL_RE. Stops at the first match,
-// once SEED_LOOKBACK_LIMIT messages have been scanned, or once the start
-// of the channel is reached (a page shorter than requested).
+// Pages backward through a channel's entire history (newest first, 100 at
+// a time) looking for a message matching WEEK_LABEL_RE. Stops at the first
+// match, or once the start of the channel is reached (a page shorter than
+// requested) with no match found.
 async function findWeekLabelMessage(channelId) {
   let before;
-  let scanned = 0;
 
-  while (scanned < SEED_LOOKBACK_LIMIT) {
+  for (;;) {
     const messages = await discord.getRecentMessages(channelId, 100, before);
     if (messages.length === 0) return null;
 
     const match = messages.find((m) => WEEK_LABEL_RE.test((m.content || '').trim()));
     if (match) return match;
 
-    scanned += messages.length;
     if (messages.length < 100) return null;
     before = messages[messages.length - 1].id;
   }
-
-  return null;
 }
 
 // For channels the bot isn't already tracking (e.g. a human posted this
