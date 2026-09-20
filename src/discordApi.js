@@ -2,22 +2,37 @@ const config = require('./config');
 
 const BASE = 'https://discord.com/api/v10';
 
-async function discordFetch(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bot ${config.token}`,
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-  });
+// A weekly job hits this endpoint many times in a row (per channel, per
+// tracked emoji, per reaction page) and Discord's rate limit is easy to
+// trip in that burst - without a retry, one 429 aborts tallying the whole
+// message, silently under-counting that channel's points for the week.
+const MAX_RATE_LIMIT_RETRIES = 5;
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Discord API ${options.method || 'GET'} ${path} failed: ${res.status} ${body}`);
+async function discordFetch(path, options = {}) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${BASE}${path}`, {
+      ...options,
+      headers: {
+        Authorization: `Bot ${config.token}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+    });
+
+    if (res.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
+      const body = await res.json().catch(() => ({}));
+      const retryAfterMs = Math.ceil((body.retry_after || 1) * 1000);
+      await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+      continue;
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Discord API ${options.method || 'GET'} ${path} failed: ${res.status} ${body}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
   }
-  if (res.status === 204) return null;
-  return res.json();
 }
 
 function getCurrentUser() {
