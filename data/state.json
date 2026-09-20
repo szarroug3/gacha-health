@@ -1,6 +1,7 @@
 {
   "channels": {
     "1548879456461127821": {
+      "name": "brooke",
       "lastMessageId": "1551121462931361833",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 4,
@@ -8,6 +9,7 @@
       "creditedMessageId": "1548885899511730288"
     },
     "1548879424190029925": {
+      "name": "dance",
       "lastMessageId": "1551121463883595830",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 6,
@@ -15,6 +17,7 @@
       "creditedMessageId": "1548885914237931532"
     },
     "1548879440610730004": {
+      "name": "drew",
       "lastMessageId": "1551121464617340991",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 6,
@@ -22,6 +25,7 @@
       "creditedMessageId": "1548885953253478451"
     },
     "1548879135659532299": {
+      "name": "fallon",
       "lastMessageId": "1551121465829630073",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 9,
@@ -29,6 +33,7 @@
       "creditedMessageId": "1548886136590569503"
     },
     "1548878777008783390": {
+      "name": "lacey",
       "lastMessageId": "1551121467188580414",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 7,
@@ -36,6 +41,7 @@
       "creditedMessageId": "1548882139523842168"
     },
     "1548879473556852897": {
+      "name": "michael-y",
       "lastMessageId": "1551121467989696524",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 0,
@@ -43,6 +49,7 @@
       "creditedMessageId": "1548886192060108811"
     },
     "1548896739212132382": {
+      "name": "michael-w",
       "lastMessageId": "1551121471160459447",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 4,
@@ -50,6 +57,7 @@
       "creditedMessageId": "1548896932095852657"
     },
     "1548879108807594064": {
+      "name": "nick",
       "lastMessageId": "1551121472020291636",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 5,
@@ -57,6 +65,7 @@
       "creditedMessageId": "1548886205385416895"
     },
     "1548886795360542771": {
+      "name": "rowan",
       "lastMessageId": "1551121472569741333",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 5,
@@ -64,6 +73,7 @@
       "creditedMessageId": "1548886835755745412"
     },
     "1548879405319852083": {
+      "name": "sam-z",
       "lastMessageId": "1551121473291161651",
       "weekLabel": "9/20 - 9/26",
       "totalPoints": 10,
@@ -71,6 +81,7 @@
       "creditedMessageId": "1548886217213616159"
     },
     "1548878935679303730": {
+      "name": "batsy",
       "lastMessageId": "1548885885003628595",
       "weekLabel": "9/13 - 9/19"
     }
