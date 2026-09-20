@@ -6,7 +6,10 @@ on:
     # drifts by an hour across the DST changeover twice a year - fine for a
     # casual weekly bot. Currently set for CDT (UTC-5); during CST
     # (Nov-Mar) it fires around 11:00 PM Saturday Central instead.
-    - cron: '0 5 * * 0'
+    # Off the top of the hour on purpose - GitHub Actions scheduled runs are
+    # most likely to be delayed or dropped at :00, especially at the start
+    # of an hour under high load.
+    - cron: '3 5 * * 0'
   workflow_dispatch:
 
 permissions:
