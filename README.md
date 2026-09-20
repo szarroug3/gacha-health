@@ -182,11 +182,14 @@ commit or discard changes to it afterward as appropriate.
 - Only reactions from the tracked emoji names count; any other emoji on
   the post is ignored.
 - The results table always has exactly one row per goal channel.
-- Scoring is safe to run more than once — it just re-scores whatever
-  message is currently tracked, it doesn't advance anything. Only posting
-  advances the tracked message, and posting is itself safe to run more
-  than once - a channel that already has this week's message is skipped
-  unless **force** is set.
+- Scoring is safe to run more than once and never double-credits a
+  message - a channel that's already been scored just gets its last
+  credited message re-tallied for display, so reprinting the results
+  table (e.g. after deleting the old message) always shows everyone's
+  real last score, not 0 for channels that happen to be mid-cycle. Only
+  posting advances the tracked message, and posting is itself safe to run
+  more than once - a channel that already has this week's message is
+  skipped unless **force** is set.
 - GitHub Actions' `schedule` trigger only guarantees the workflow won't
   run *before* the scheduled time — during high load it can be delayed by
   several minutes. Not an issue for a weekly personal-goals bot.

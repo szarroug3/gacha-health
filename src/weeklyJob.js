@@ -93,18 +93,28 @@ async function postWeeklyMessages({ force = false } = {}) {
 }
 
 // Scores the currently-tracked message in each goal channel, credits the
-// points to that channel's running total (once per message - re-running
-// this against the same tracked message re-displays it but doesn't credit
-// it twice), and posts a results table to the results channel - skipped
-// when no channel scored any points this week.
-// postWeeklyMessages() is what advances the tracked message to a new one;
-// this never touches lastMessageId/weekLabel. Never scores a channel's
-// current-week message (weekLabel matches this week) - that message's
-// week isn't over yet, so tallying it now would lock in a premature (and
-// likely 0) count and permanently block the real scoring once the week
-// actually ends. This mainly matters for an out-of-sequence manual run
-// (e.g. recovering a channel seed missed) alongside channels that already
-// got this week's message from a normal postWeeklyMessages() run.
+// points to that channel's running total (once per message - a message
+// only ever gets credited once, tracked via creditedMessageId), and posts
+// a results table to the results channel - skipped when no channel has
+// anything to show. postWeeklyMessages() is what advances the tracked
+// message to a new one; this never touches lastMessageId/weekLabel.
+//
+// Never *credits* a channel's current-week message (weekLabel matches
+// this week) - that message's week isn't over yet, so crediting it now
+// would lock in a premature (and likely 0) count and permanently block
+// the real scoring once the week actually ends. This mainly matters for
+// an out-of-sequence manual run (e.g. recovering a channel seed missed)
+// alongside channels that already got this week's message from a normal
+// postWeeklyMessages() run.
+//
+// A channel with nothing new to credit but a real scoring history
+// (creditedMessageId set) still gets its last-credited message re-tallied
+// purely for *display* - read-only, no state change - so the results
+// table always shows everyone's real last score, not 0 for every channel
+// that just happens to be mid-cycle. That's what makes reprinting safe:
+// re-running this after deleting the old results message shows the same
+// complete picture again instead of only whatever this particular run
+// happened to newly credit.
 async function scoreLastWeek() {
   const { goalChannels, resultsChannel } = await getChannels();
   const botUser = await discord.getCurrentUser();
@@ -118,20 +128,30 @@ async function scoreLastWeek() {
     const channelState = state.channels[channel.id] || {};
     let lastWeekPoints = 0;
 
-    if (channelState.lastMessageId && channelState.weekLabel !== currentWeekLabel) {
+    const readyToCredit =
+      channelState.lastMessageId &&
+      channelState.weekLabel !== currentWeekLabel &&
+      channelState.creditedMessageId !== channelState.lastMessageId;
+
+    if (readyToCredit) {
       try {
         const message = await discord.getMessage(channel.id, channelState.lastMessageId);
         lastWeekPoints = await tallyPoints(channel.id, message, botUser.id);
+        channelState.totalPoints = (channelState.totalPoints || 0) + lastWeekPoints;
+        channelState.lifetimeGained = (channelState.lifetimeGained || 0) + lastWeekPoints;
+        channelState.creditedMessageId = channelState.lastMessageId;
+        state.channels[channel.id] = channelState;
         scoredWeekLabel = channelState.weekLabel;
-
-        if (channelState.creditedMessageId !== channelState.lastMessageId) {
-          channelState.totalPoints = (channelState.totalPoints || 0) + lastWeekPoints;
-          channelState.lifetimeGained = (channelState.lifetimeGained || 0) + lastWeekPoints;
-          channelState.creditedMessageId = channelState.lastMessageId;
-          state.channels[channel.id] = channelState;
-        }
       } catch (err) {
         console.error(`Could not fetch/tally message for #${channel.name}: ${err.message}`);
+      }
+    } else if (channelState.creditedMessageId) {
+      try {
+        const message = await discord.getMessage(channel.id, channelState.creditedMessageId);
+        lastWeekPoints = await tallyPoints(channel.id, message, botUser.id);
+        scoredWeekLabel = scoredWeekLabel || message.content.trim();
+      } catch (err) {
+        console.error(`Could not re-fetch credited message for #${channel.name}: ${err.message}`);
       }
     }
 
