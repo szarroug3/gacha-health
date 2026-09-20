@@ -64,7 +64,8 @@ async function postWeeklyMessages() {
 // Scores the currently-tracked message in each goal channel, credits the
 // points to that channel's running total (once per message - re-running
 // this against the same tracked message re-displays it but doesn't credit
-// it twice), and posts a results table to the results channel.
+// it twice), and posts a results table to the results channel - skipped
+// when no channel scored any points this week.
 // postWeeklyMessages() is what advances the tracked message to a new one;
 // this never touches lastMessageId/weekLabel.
 async function scoreLastWeek() {
@@ -100,7 +101,9 @@ async function scoreLastWeek() {
   }
 
   saveState(state);
-  await discord.sendEmbed(resultsChannel.id, buildResultsEmbed(resultsRows, scoredWeekLabel));
+  if (resultsRows.some((row) => row.lastWeek > 0)) {
+    await discord.sendEmbed(resultsChannel.id, buildResultsEmbed(resultsRows, scoredWeekLabel));
+  }
   return resultsRows;
 }
 
