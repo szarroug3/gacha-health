@@ -61,9 +61,9 @@ function sortChannelsByPosition(state, goalChannels) {
 // channel and removes the orphan, so leaving doesn't cost someone their
 // points if they come back. Only totalPoints/lifetime* carry over; the
 // new channel still gets its own fresh tracked message from
-// seedTrackedMessages()/postWeeklyMessages(). Silent - the caller reports
-// it as part of the weekly "Welcomed/Returned/Left" summary instead of
-// announcing each migration individually. Returns true if revived.
+// seedTrackedMessages()/postWeeklyMessages(). Silent - nothing gets
+// posted about it; the channel just starts showing up in the normal
+// results table again. Returns true if revived.
 function reviveIfOrphaned(state, channel, liveIds) {
   if (state.channels[channel.id]) return false;
 
@@ -447,16 +447,16 @@ async function findWeekLabelMessage(channelId, botUserId) {
 // channel gets adopted without anyone having to remember to run this by
 // hand.
 //
-// Also where membership changes get tracked and announced: a channel
-// brand new to state.json is "welcomed" (or "returned" if reviveIfOrphaned
-// finds a name match), and a channel present in state.liveChannelIds
-// (the live set as of the last time this ran) but missing from the
-// current live set has "left". Posts one "Welcomed/Returned/Left" summary
-// when any of those happened; otherwise stays fully quiet - the seeding
-// mechanics themselves (which message got adopted, which couldn't be
-// matched) aren't posted anywhere, just reflected in what gets tracked.
+// Also where membership changes get tracked (not announced - nothing
+// posts about this to Discord; a channel just starts/stops showing up in
+// the normal results table like any other channel): a channel brand new
+// to state.json is "welcomed" (or "returned" if reviveIfOrphaned finds a
+// name match, which also migrates its old totalPoints/lifetime* back),
+// and a channel present in state.liveChannelIds (the live set as of the
+// last time this ran) but missing from the current live set has "left".
+// welcomed/returned/left are returned for logging, nothing more.
 async function seedTrackedMessages() {
-  const { goalChannels, resultsChannel } = await getChannels();
+  const { goalChannels } = await getChannels();
   const botUser = await discord.getCurrentUser();
   const state = loadState();
   const seeded = [];
@@ -502,18 +502,7 @@ async function seedTrackedMessages() {
   sortChannelsByPosition(state, goalChannels);
   saveState(state);
 
-  const membershipSummary = buildMembershipSummary(welcomed, returned, left);
-  if (membershipSummary) await discord.sendMessage(resultsChannel.id, membershipSummary);
-
   return { seeded, alreadyTracked, noMatch, welcomed, returned, left };
-}
-
-function buildMembershipSummary(welcomed, returned, left) {
-  const lines = [];
-  if (welcomed.length > 0) lines.push(`Welcomed this week: ${welcomed.join(', ')}`);
-  if (returned.length > 0) lines.push(`Returned this week: ${returned.join(', ')}`);
-  if (left.length > 0) lines.push(`Left this week: ${left.join(', ')}`);
-  return lines.length > 0 ? lines.join('\n') : null;
 }
 
 // Sums points from every tracked emoji present on the message (each

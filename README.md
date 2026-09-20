@@ -8,15 +8,9 @@ Sunday (around 12:00 AM Central), it:
    yet - a brand-new channel someone already posted a dated message in
    before the bot noticed it, or one that fell through the cracks
    earlier - so a new member doesn't need anyone to run a manual step for
-   them to get picked up. If anyone joined, returned, or left since the
-   last run, posts a one-line summary to `#bot`, e.g.:
-   ```
-   Welcomed this week: carey, heather
-   Returned this week: drew
-   Left this week: pat
-   ```
-   Only the lines that apply show up, and nothing posts at all on a
-   normal week where membership didn't change.
+   them to get picked up. Nothing gets posted about this - a new or
+   returning member just starts showing up in the normal results table
+   below like anyone else, and someone who left just stops appearing.
 2. Scores the message currently tracked in every text channel under the
    category, based on reactions:
    - `:1sunday:` `:2monday:` `:3tuesday:` `:4wednesday:` `:5thursday:`
@@ -34,11 +28,10 @@ Sunday (around 12:00 AM Central), it:
 
 If someone leaves (their channel gets deleted or moved out of the
 category), their point history isn't deleted - it just stops being
-touched, and they show up in that week's "Left" line. If a channel with
-the same name later reappears (e.g. they come back and the owner
-recreates it), the bot recognizes the name match, automatically restores
-their old total to the new channel, and lists them under "Returned"
-instead of "Welcomed".
+touched. If a channel with the same name later reappears (e.g. they come
+back and the owner recreates it), the bot recognizes the name match and
+automatically restores their old total to the new channel - silently,
+same as everything else here.
 
 It also posts a one-off `@everyone` reminder to `#general` every Saturday
 around 6:00 PM Central: "Make sure to add your points to your weekly
@@ -177,9 +170,9 @@ demand via **Run workflow**:
   recent human-posted message matching that date-range format (hyphen or
   dash, spaces optional) and adopts it, so scoring picks up reactions
   already on it. Leaves a channel alone once it's been credited at least
-  once. Also runs automatically as the first step of the weekly job. Only
-  posts to `#bot` when membership actually changed (see the
-  Welcomed/Returned/Left summary above) - otherwise silent.
+  once. Also runs automatically as the first step of the weekly job.
+  Never posts anything to `#bot` - a new or returning channel just shows
+  up in the next results table on its own.
 - **Weekly goals job** — the real scheduled workflow; also runnable
   manually (seed, then score, then post, back to back), with the same
   **force** input as **post**.
