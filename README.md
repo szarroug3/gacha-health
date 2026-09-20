@@ -4,18 +4,32 @@ Runs as a scheduled [GitHub Actions](https://github.com/features/actions) workfl
 credit card, and it only needs to run for a few seconds once a week. Every
 Sunday (around 12:00 AM Central), it:
 
-1. Scores the message currently tracked in every text channel under the
-   **Personal Goals** category, based on reactions:
+1. Adopts any text channel under **Personal Goals** that isn't tracked
+   yet - a brand-new channel someone already posted a dated message in
+   before the bot noticed it, or one that fell through the cracks
+   earlier - so a new member doesn't need anyone to run a manual step for
+   them to get picked up.
+2. Scores the message currently tracked in every text channel under the
+   category, based on reactions:
    - `:1sunday:` `:2monday:` `:3tuesday:` `:4wednesday:` `:5thursday:`
      `:6friday:` `:7saturday:` = 1 point each
    - `:Biggoal:` = 5 points
    - `:Weekly:` = 3 points
+   - Each tracked emoji counts once per message regardless of how many
+     people reacted with it - it marks that day/goal as done, not a vote.
    - Credits those points to that channel's running total (once per
      message - re-scoring the same message never double-credits it), and
      posts a results table to `#bot` with one row per channel showing
      **Last Week** and **Total** (running balance).
-2. Posts a new message in each of those channels with the new week's date
+3. Posts a new message in each of those channels with the new week's date
    range (e.g. `9/13 - 9/19`), and starts tracking it for next week.
+
+If someone leaves (their channel gets deleted or moved out of the
+category), their point history isn't deleted - it just stops being
+touched. If a channel with the same name later reappears (e.g. they come
+back and the owner recreates it), the bot recognizes the name match and
+automatically restores their old total to the new channel, posting a
+note to `#bot` when it does.
 
 It also posts a one-off `@everyone` reminder to `#general` every Saturday
 around 6:00 PM Central: "Make sure to add your points to your weekly
@@ -154,10 +168,12 @@ runnable on demand via **Run workflow**:
   recent human-posted message matching that date-range format (hyphen or
   dash, spaces optional) and adopts it, so scoring picks up reactions
   already on it. Leaves a channel alone once it's been credited at least
-  once.
+  once. Also runs automatically as the first step of the weekly job, and
+  stays quiet (no `#bot` post) when there's nothing to seed and nothing
+  to flag, so it doesn't post every single week.
 - **Weekly goals job** — the real scheduled workflow; also runnable
-  manually (score, then post, back to back), with the same **force**
-  input as **post**.
+  manually (seed, then score, then post, back to back), with the same
+  **force** input as **post**.
 
 A realistic test: run **post**, react to the new message in a test channel
 with a few of the tracked emojis, then run **score** to see the results

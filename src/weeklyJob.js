@@ -54,6 +54,43 @@ function sortChannelsByPosition(state, goalChannels) {
   state.channels = sorted;
 }
 
+// If `channel` is brand new to state.json (no entry yet at all) and its
+// name matches an orphaned entry - one whose channel id is no longer
+// among goalChannels, e.g. someone quit and the owner later created them
+// a new channel with the same name - migrates that old total onto the
+// new channel and removes the orphan, so leaving doesn't cost someone
+// their points if they come back. Only totalPoints/lifetime* carry over;
+// the new channel still gets its own fresh tracked message from
+// seedTrackedMessages()/postWeeklyMessages(). Posts an announcement so
+// the migration is visible rather than a silent state change. Returns
+// true if a revival happened.
+async function reviveIfOrphaned(state, channel, liveIds, resultsChannel) {
+  if (state.channels[channel.id]) return false;
+
+  const orphan = Object.entries(state.channels).find(
+    ([id, data]) => !liveIds.has(id) && (data.name || '').toLowerCase() === channel.name.toLowerCase()
+  );
+  if (!orphan) return false;
+
+  const [orphanId, orphanData] = orphan;
+  const revived = {
+    name: channel.name,
+    totalPoints: orphanData.totalPoints || 0,
+    lifetimeGained: orphanData.lifetimeGained || 0,
+    ...(orphanData.lifetimeSpent ? { lifetimeSpent: orphanData.lifetimeSpent } : {}),
+  };
+  state.channels[channel.id] = revived;
+  delete state.channels[orphanId];
+
+  await discord.sendMessage(
+    resultsChannel.id,
+    `🔄 **#${channel.name}** looks like a returning member - restored their prior total: ` +
+      `**${revived.totalPoints}** ${pointsSuffix(revived.totalPoints)} ` +
+      `(lifetime gained: ${revived.lifetimeGained}, spent: ${revived.lifetimeSpent || 0}).`
+  );
+  return true;
+}
+
 // Posts the new dated message (e.g. "9/13-9/19") to every goal channel and
 // starts tracking it as the message scoreLastWeek() should score next time.
 // Skips a channel that's already tracking a message for the current week
@@ -62,14 +99,16 @@ function sortChannelsByPosition(state, goalChannels) {
 // into every channel. force: true reprints regardless - e.g. to replace a
 // deleted message, or after correcting state by hand.
 async function postWeeklyMessages({ force = false } = {}) {
-  const { goalChannels } = await getChannels();
+  const { goalChannels, resultsChannel } = await getChannels();
 
   const state = loadState();
   const newWeekLabel = getWeekLabel(config.timezone);
   const posted = [];
   const skipped = [];
+  const liveIds = new Set(goalChannels.map((c) => c.id));
 
   for (const channel of goalChannels) {
+    await reviveIfOrphaned(state, channel, liveIds, resultsChannel);
     const channelState = state.channels[channel.id];
     if (!force && channelState?.weekLabel === newWeekLabel) {
       skipped.push(channel.name);
@@ -81,6 +120,7 @@ async function postWeeklyMessages({ force = false } = {}) {
     // that scoreLastWeek() may have already set for this channel.
     state.channels[channel.id] = {
       ...(channelState || {}),
+      name: channel.name,
       lastMessageId: newMessage.id,
       weekLabel: newWeekLabel,
     };
@@ -137,6 +177,7 @@ async function scoreLastWeek() {
       try {
         const message = await discord.getMessage(channel.id, channelState.lastMessageId);
         lastWeekPoints = await tallyPoints(channel.id, message, botUser.id);
+        channelState.name = channel.name;
         channelState.totalPoints = (channelState.totalPoints || 0) + lastWeekPoints;
         channelState.lifetimeGained = (channelState.lifetimeGained || 0) + lastWeekPoints;
         channelState.creditedMessageId = channelState.lastMessageId;
@@ -194,6 +235,7 @@ async function spendPoints(channelName, amount, note, { skipChannelMessage = fal
     throw new Error(`#${channel.name} only has ${currentTotal} points, can't spend ${amount}`);
   }
 
+  channelState.name = channel.name;
   channelState.totalPoints = currentTotal - amount;
   channelState.lifetimeSpent = (channelState.lifetimeSpent || 0) + amount;
   state.channels[channel.id] = channelState;
@@ -232,8 +274,10 @@ async function transferPoints(fromChannelName, toChannelName, amount, note, { sk
     throw new Error(`#${fromChannel.name} only has ${fromTotal} points, can't transfer ${amount}`);
   }
 
+  fromState.name = fromChannel.name;
   fromState.totalPoints = fromTotal - amount;
   fromState.lifetimeSpent = (fromState.lifetimeSpent || 0) + amount;
+  toState.name = toChannel.name;
   toState.totalPoints = (toState.totalPoints || 0) + amount;
   toState.lifetimeGained = (toState.lifetimeGained || 0) + amount;
   state.channels[fromChannel.id] = fromState;
@@ -267,6 +311,7 @@ async function addPoints(channelName, amount, note, { skipChannelMessage = false
 
   const state = loadState();
   const channelState = state.channels[channel.id] || {};
+  channelState.name = channel.name;
   channelState.totalPoints = (channelState.totalPoints || 0) + amount;
   channelState.lifetimeGained = (channelState.lifetimeGained || 0) + amount;
   state.channels[channel.id] = channelState;
@@ -361,10 +406,13 @@ async function postReminder() {
   );
 }
 
-// Runs both steps in the right order: score the outgoing week, then post
-// the new one. Used for the weekly scheduled run. force is passed through
-// to postWeeklyMessages() - see there.
+// Runs the full weekly cycle: adopt any channel that isn't tracked yet
+// (a brand-new channel with an existing human-posted message, or one
+// that never got seeded), score the outgoing week, then post the new
+// one. Used for the weekly scheduled run. force is passed through to
+// postWeeklyMessages() - see there.
 async function runWeeklyJob({ force = false } = {}) {
+  await seedTrackedMessages();
   await scoreLastWeek();
   await postWeeklyMessages({ force });
 }
@@ -403,8 +451,11 @@ async function findWeekLabelMessage(channelId, botUserId) {
 // tracked" - and is left alone - only once it has been credited at least
 // once (creditedMessageId set); a channel whose only tracked message has
 // never been scored is safe to re-point at an earlier real message
-// instead. Posts a summary to the results channel so a channel that
-// couldn't be matched doesn't fail silently.
+// instead. Runs automatically as part of runWeeklyJob(), so a brand-new
+// channel gets adopted without anyone having to remember to run this by
+// hand - and stays quiet (no results-channel post) on a normal week
+// where there's nothing to seed and nothing to flag, so it doesn't spam
+// the channel every Sunday.
 async function seedTrackedMessages() {
   const { goalChannels, resultsChannel } = await getChannels();
   const botUser = await discord.getCurrentUser();
@@ -412,8 +463,10 @@ async function seedTrackedMessages() {
   const seeded = [];
   const alreadyTracked = [];
   const noMatch = [];
+  const liveIds = new Set(goalChannels.map((c) => c.id));
 
   for (const channel of goalChannels) {
+    await reviveIfOrphaned(state, channel, liveIds, resultsChannel);
     const channelState = state.channels[channel.id];
     if (channelState?.creditedMessageId) {
       alreadyTracked.push(channel.name);
@@ -429,13 +482,15 @@ async function seedTrackedMessages() {
     const weekLabel = match.content.trim();
     // Merge rather than replace - preserves totalPoints/lifetimeGained a
     // channel may already have from a manual /add, /spend, or /transfer.
-    state.channels[channel.id] = { ...(channelState || {}), lastMessageId: match.id, weekLabel };
+    state.channels[channel.id] = { ...(channelState || {}), name: channel.name, lastMessageId: match.id, weekLabel };
     seeded.push({ channel: channel.name, weekLabel });
   }
 
   sortChannelsByPosition(state, goalChannels);
   saveState(state);
-  await discord.sendMessage(resultsChannel.id, buildSeedSummary(seeded, alreadyTracked, noMatch));
+  if (seeded.length > 0 || noMatch.length > 0) {
+    await discord.sendMessage(resultsChannel.id, buildSeedSummary(seeded, alreadyTracked, noMatch));
+  }
   return { seeded, alreadyTracked, noMatch };
 }
 
