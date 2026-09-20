@@ -5,41 +5,62 @@
       "weekLabel": "9/13 - 9/19"
     },
     "1548879456461127821": {
-      "lastMessageId": "1548885899511730288",
-      "weekLabel": "9/13 - 9/19"
+      "lastMessageId": "1551121462931361833",
+      "weekLabel": "9/20 - 9/26",
+      "totalPoints": 5,
+      "lifetimeGained": 5,
+      "creditedMessageId": "1548885899511730288"
     },
     "1548879424190029925": {
-      "lastMessageId": "1548885914237931532",
-      "weekLabel": "9/13 - 9/19"
+      "lastMessageId": "1551121463883595830",
+      "weekLabel": "9/20 - 9/26"
     },
     "1548879135659532299": {
-      "lastMessageId": "1548886136590569503",
-      "weekLabel": "9/13 - 9/19"
+      "lastMessageId": "1551121465829630073",
+      "weekLabel": "9/20 - 9/26"
     },
     "1548878777008783390": {
-      "lastMessageId": "1548882139523842168",
-      "weekLabel": "9/13 - 9/19"
+      "lastMessageId": "1551121467188580414",
+      "weekLabel": "9/20 - 9/26",
+      "totalPoints": 7,
+      "lifetimeGained": 7,
+      "creditedMessageId": "1548882139523842168"
     },
     "1548879473556852897": {
-      "lastMessageId": "1548886192060108811",
-      "weekLabel": "9/13 - 9/19"
+      "lastMessageId": "1551121467989696524",
+      "weekLabel": "9/20 - 9/26",
+      "totalPoints": 0,
+      "lifetimeGained": 0,
+      "creditedMessageId": "1548886192060108811"
     },
     "1548896739212132382": {
-      "lastMessageId": "1548896932095852657",
-      "weekLabel": "9/13 - 9/19"
+      "lastMessageId": "1551121471160459447",
+      "weekLabel": "9/20 - 9/26",
+      "totalPoints": 4,
+      "lifetimeGained": 4,
+      "creditedMessageId": "1548896932095852657"
     },
     "1548879108807594064": {
-      "lastMessageId": "1548886205385416895",
-      "weekLabel": "9/13 - 9/19"
+      "lastMessageId": "1551121472020291636",
+      "weekLabel": "9/20 - 9/26",
+      "totalPoints": 5,
+      "lifetimeGained": 5,
+      "creditedMessageId": "1548886205385416895"
     },
     "1548886795360542771": {
-      "lastMessageId": "1548886835755745412",
-      "weekLabel": "9/13 - 9/19",
-      "totalPoints": 0
+      "lastMessageId": "1551121472569741333",
+      "weekLabel": "9/20 - 9/26",
+      "totalPoints": 5,
+      "lifetimeGained": 5,
+      "creditedMessageId": "1548886835755745412"
     },
     "1548879405319852083": {
-      "lastMessageId": "1548886217213616159",
-      "weekLabel": "9/13 - 9/19"
+      "lastMessageId": "1551121473291161651",
+      "weekLabel": "9/20 - 9/26"
+    },
+    "1548879440610730004": {
+      "lastMessageId": "1551121464617340991",
+      "weekLabel": "9/20 - 9/26"
     }
   }
 }
