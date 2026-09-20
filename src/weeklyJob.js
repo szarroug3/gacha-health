@@ -457,8 +457,10 @@ function buildSeedSummary(seeded, alreadyTracked, noMatch) {
   return lines.join('\n');
 }
 
-// Sums points from every tracked-emoji reaction on the message, from any
-// non-bot user (a channel's post is scored as a single total, not per-user).
+// Sums points from every tracked emoji present on the message (each
+// counted once - e.g. "1sunday" is worth 1 point whether one person or
+// five reacted with it, since it marks that day's goal as done, not a
+// vote count), as long as at least one non-bot user reacted with it.
 async function tallyPoints(channelId, message, botUserId) {
   let total = 0;
 
@@ -469,10 +471,8 @@ async function tallyPoints(channelId, message, botUserId) {
 
     const emojiIdentifier = reaction.emoji.id ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
     const users = await discord.getReactionUsers(channelId, message.id, emojiIdentifier);
-    for (const user of users) {
-      if (user.bot || user.id === botUserId) continue;
-      total += value;
-    }
+    const hasRealReactor = users.some((user) => !user.bot && user.id !== botUserId);
+    if (hasRealReactor) total += value;
   }
 
   return total;
