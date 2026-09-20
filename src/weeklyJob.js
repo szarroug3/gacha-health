@@ -307,17 +307,23 @@ async function runWeeklyJob() {
 }
 
 // Pages backward through a channel's entire history (newest first, 100 at
-// a time) looking for a message matching WEEK_LABEL_RE. Stops at the first
-// match, or once the start of the channel is reached (a page shorter than
-// requested) with no match found.
-async function findWeekLabelMessage(channelId) {
+// a time) looking for a message matching WEEK_LABEL_RE, ignoring any
+// message the bot itself posted - the bot's own weekly posts match the
+// same pattern, but seeding is meant to adopt a message a human posted,
+// not something the bot already posted (and would just re-find as the
+// "most recent" match, hiding the real one further back). Stops at the
+// first qualifying match, or once the start of the channel is reached (a
+// page shorter than requested) with no match found.
+async function findWeekLabelMessage(channelId, botUserId) {
   let before;
 
   for (;;) {
     const messages = await discord.getRecentMessages(channelId, 100, before);
     if (messages.length === 0) return null;
 
-    const match = messages.find((m) => WEEK_LABEL_RE.test((m.content || '').trim()));
+    const match = messages.find(
+      (m) => m.author?.id !== botUserId && WEEK_LABEL_RE.test((m.content || '').trim())
+    );
     if (match) return match;
 
     if (messages.length < 100) return null;
@@ -327,12 +333,13 @@ async function findWeekLabelMessage(channelId) {
 
 // For channels the bot isn't already tracking (e.g. a human posted this
 // week's date-range message before the bot ever ran there), find the most
-// recent message that looks like "9/13-9/19" and adopt it, so scoring
-// picks up reactions already on it. Never overwrites a channel that's
-// already tracked. Posts a summary to the results channel so a channel
-// that couldn't be matched doesn't fail silently.
+// recent human-posted message that looks like "9/13-9/19" and adopt it, so
+// scoring picks up reactions already on it. Never overwrites a channel
+// that's already tracked. Posts a summary to the results channel so a
+// channel that couldn't be matched doesn't fail silently.
 async function seedTrackedMessages() {
   const { goalChannels, resultsChannel } = await getChannels();
+  const botUser = await discord.getCurrentUser();
   const state = loadState();
   const seeded = [];
   const alreadyTracked = [];
@@ -344,7 +351,7 @@ async function seedTrackedMessages() {
       continue;
     }
 
-    const match = await findWeekLabelMessage(channel.id);
+    const match = await findWeekLabelMessage(channel.id, botUser.id);
     if (!match) {
       noMatch.push(channel.name);
       continue;
