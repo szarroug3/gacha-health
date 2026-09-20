@@ -98,7 +98,13 @@ async function postWeeklyMessages({ force = false } = {}) {
 // it twice), and posts a results table to the results channel - skipped
 // when no channel scored any points this week.
 // postWeeklyMessages() is what advances the tracked message to a new one;
-// this never touches lastMessageId/weekLabel.
+// this never touches lastMessageId/weekLabel. Never scores a channel's
+// current-week message (weekLabel matches this week) - that message's
+// week isn't over yet, so tallying it now would lock in a premature (and
+// likely 0) count and permanently block the real scoring once the week
+// actually ends. This mainly matters for an out-of-sequence manual run
+// (e.g. recovering a channel seed missed) alongside channels that already
+// got this week's message from a normal postWeeklyMessages() run.
 async function scoreLastWeek() {
   const { goalChannels, resultsChannel } = await getChannels();
   const botUser = await discord.getCurrentUser();
@@ -106,12 +112,13 @@ async function scoreLastWeek() {
   const state = loadState();
   const resultsRows = [];
   let scoredWeekLabel = null;
+  const currentWeekLabel = getWeekLabel(config.timezone);
 
   for (const channel of goalChannels) {
     const channelState = state.channels[channel.id] || {};
     let lastWeekPoints = 0;
 
-    if (channelState.lastMessageId) {
+    if (channelState.lastMessageId && channelState.weekLabel !== currentWeekLabel) {
       try {
         const message = await discord.getMessage(channel.id, channelState.lastMessageId);
         lastWeekPoints = await tallyPoints(channel.id, message, botUser.id);
