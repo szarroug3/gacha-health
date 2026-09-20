@@ -2,6 +2,12 @@ name: Manual - post weekly messages
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force reprint even for a channel that already has this week''s message'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,6 +33,7 @@ jobs:
           CATEGORY_NAME: ${{ vars.CATEGORY_NAME }}
           RESULTS_CHANNEL_NAME: ${{ vars.RESULTS_CHANNEL_NAME }}
           TIMEZONE: ${{ vars.TIMEZONE }}
+          FORCE_REPRINT: ${{ inputs.force }}
 
       - name: Commit updated state
         run: |

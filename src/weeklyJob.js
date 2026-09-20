@@ -38,27 +38,58 @@ async function getChannels() {
   return { goalChannels, resultsChannel };
 }
 
+// Reorders state.channels to match goalChannels' Discord position order
+// (falling back to whatever order any other entries were already in, e.g.
+// a channel that's been deleted or renamed out of the category), so
+// data/state.json reads in a stable, predictable order instead of
+// whatever order channels happened to get touched in over time.
+function sortChannelsByPosition(state, goalChannels) {
+  const sorted = {};
+  for (const channel of goalChannels) {
+    if (channel.id in state.channels) sorted[channel.id] = state.channels[channel.id];
+  }
+  for (const id of Object.keys(state.channels)) {
+    if (!(id in sorted)) sorted[id] = state.channels[id];
+  }
+  state.channels = sorted;
+}
+
 // Posts the new dated message (e.g. "9/13-9/19") to every goal channel and
 // starts tracking it as the message scoreLastWeek() should score next time.
-async function postWeeklyMessages() {
+// Skips a channel that's already tracking a message for the current week
+// (weekLabel matches) unless force is set, so a delayed/duplicate trigger
+// (or an accidental double-dispatch) doesn't spam a second dated message
+// into every channel. force: true reprints regardless - e.g. to replace a
+// deleted message, or after correcting state by hand.
+async function postWeeklyMessages({ force = false } = {}) {
   const { goalChannels } = await getChannels();
 
   const state = loadState();
   const newWeekLabel = getWeekLabel(config.timezone);
+  const posted = [];
+  const skipped = [];
 
   for (const channel of goalChannels) {
+    const channelState = state.channels[channel.id];
+    if (!force && channelState?.weekLabel === newWeekLabel) {
+      skipped.push(channel.name);
+      continue;
+    }
+
     const newMessage = await discord.sendMessage(channel.id, newWeekLabel);
     // Merge rather than replace - preserves totalPoints/creditedMessageId
     // that scoreLastWeek() may have already set for this channel.
     state.channels[channel.id] = {
-      ...(state.channels[channel.id] || {}),
+      ...(channelState || {}),
       lastMessageId: newMessage.id,
       weekLabel: newWeekLabel,
     };
+    posted.push(channel.name);
   }
 
+  sortChannelsByPosition(state, goalChannels);
   saveState(state);
-  return newWeekLabel;
+  return { weekLabel: newWeekLabel, posted, skipped };
 }
 
 // Scores the currently-tracked message in each goal channel, credits the
@@ -100,6 +131,7 @@ async function scoreLastWeek() {
     resultsRows.push({ channel: channel.name, lastWeek: lastWeekPoints, total: channelState.totalPoints || 0 });
   }
 
+  sortChannelsByPosition(state, goalChannels);
   saveState(state);
   if (resultsRows.some((row) => row.lastWeek > 0)) {
     await discord.sendEmbed(resultsChannel.id, buildResultsEmbed(resultsRows, scoredWeekLabel));
@@ -138,6 +170,7 @@ async function spendPoints(channelName, amount, note, { skipChannelMessage = fal
   channelState.totalPoints = currentTotal - amount;
   channelState.lifetimeSpent = (channelState.lifetimeSpent || 0) + amount;
   state.channels[channel.id] = channelState;
+  sortChannelsByPosition(state, goalChannels);
   saveState(state);
 
   if (!skipChannelMessage) {
@@ -178,6 +211,7 @@ async function transferPoints(fromChannelName, toChannelName, amount, note, { sk
   toState.lifetimeGained = (toState.lifetimeGained || 0) + amount;
   state.channels[fromChannel.id] = fromState;
   state.channels[toChannel.id] = toState;
+  sortChannelsByPosition(state, goalChannels);
   saveState(state);
 
   if (!skipChannelMessage) {
@@ -209,6 +243,7 @@ async function addPoints(channelName, amount, note, { skipChannelMessage = false
   channelState.totalPoints = (channelState.totalPoints || 0) + amount;
   channelState.lifetimeGained = (channelState.lifetimeGained || 0) + amount;
   state.channels[channel.id] = channelState;
+  sortChannelsByPosition(state, goalChannels);
   saveState(state);
 
   if (!skipChannelMessage) {
@@ -300,10 +335,11 @@ async function postReminder() {
 }
 
 // Runs both steps in the right order: score the outgoing week, then post
-// the new one. Used for the weekly scheduled run.
-async function runWeeklyJob() {
+// the new one. Used for the weekly scheduled run. force is passed through
+// to postWeeklyMessages() - see there.
+async function runWeeklyJob({ force = false } = {}) {
   await scoreLastWeek();
-  await postWeeklyMessages();
+  await postWeeklyMessages({ force });
 }
 
 // Pages backward through a channel's entire history (newest first, 100 at
@@ -370,6 +406,7 @@ async function seedTrackedMessages() {
     seeded.push({ channel: channel.name, weekLabel });
   }
 
+  sortChannelsByPosition(state, goalChannels);
   saveState(state);
   await discord.sendMessage(resultsChannel.id, buildSeedSummary(seeded, alreadyTracked, noMatch));
   return { seeded, alreadyTracked, noMatch };

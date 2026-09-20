@@ -1,6 +1,8 @@
 const { runWeeklyJob } = require('./weeklyJob');
 
-runWeeklyJob()
+const force = process.env.FORCE_REPRINT === 'true';
+
+runWeeklyJob({ force })
   .then(() => console.log('Weekly goals job complete.'))
   .catch((err) => {
     console.error('Weekly job failed:', err);

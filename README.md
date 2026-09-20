@@ -139,19 +139,25 @@ Go to this repo's **Actions** tab. Three workflows are available, each
 runnable on demand via **Run workflow**:
 
 - **Manual - post weekly messages** — posts this week's dated message to
-  every goal channel right now, and starts tracking it.
+  every goal channel that doesn't already have one for this week, and
+  starts tracking it. Check the **force** input to reprint anyway (e.g. to
+  replace a deleted message) — every channel gets a fresh post regardless
+  of what's already tracked for this week.
 - **Manual - score tracked messages** — scores whatever message is
   currently tracked in each goal channel right now, and posts the results
-  table to `#bot`.
-- **Manual - adopt existing dated messages** — for channels the bot isn't
-  tracking yet (e.g. a human posted this week's `9/13 - 9/19` message
-  before the bot ever ran there), finds the most recent message matching
-  that date-range format (hyphen or dash, spaces optional) in each
-  untracked goal channel and adopts it, so scoring picks up reactions
-  already on it. Never touches a channel
-  that's already tracked.
+  table to `#bot` (skipped if no channel scored any points).
+- **Manual - adopt existing dated messages** — for channels the bot
+  hasn't credited a message for yet (e.g. a human posted this week's
+  `9/13 - 9/19` message before the bot ever ran there, or it got a blank
+  first post from **post** before ever being seeded), searches the
+  channel's full history (ignoring the bot's own posts) for the most
+  recent human-posted message matching that date-range format (hyphen or
+  dash, spaces optional) and adopts it, so scoring picks up reactions
+  already on it. Leaves a channel alone once it's been credited at least
+  once.
 - **Weekly goals job** — the real scheduled workflow; also runnable
-  manually (score, then post, back to back).
+  manually (score, then post, back to back), with the same **force**
+  input as **post**.
 
 A realistic test: run **post**, react to the new message in a test channel
 with a few of the tracked emojis, then run **score** to see the results
@@ -178,10 +184,16 @@ commit or discard changes to it afterward as appropriate.
 - The results table always has exactly one row per goal channel.
 - Scoring is safe to run more than once — it just re-scores whatever
   message is currently tracked, it doesn't advance anything. Only posting
-  advances the tracked message.
+  advances the tracked message, and posting is itself safe to run more
+  than once - a channel that already has this week's message is skipped
+  unless **force** is set.
 - GitHub Actions' `schedule` trigger only guarantees the workflow won't
   run *before* the scheduled time — during high load it can be delayed by
   several minutes. Not an issue for a weekly personal-goals bot.
+- `data/state.json`'s channels are always kept sorted to match the goal
+  channels' order in Discord, so the file stays predictable to read and
+  diff instead of drifting into whatever order channels happened to get
+  touched in.
 
 ## Setting up slash commands
 
