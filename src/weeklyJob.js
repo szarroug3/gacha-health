@@ -306,13 +306,43 @@ async function runWeeklyJob() {
   await postWeeklyMessages();
 }
 
+// How far back seedTrackedMessages() will page through a channel's history
+// looking for a date-range message, in case of a heavily-chatted channel
+// where the original human-posted message has scrolled past the most
+// recent page.
+const SEED_LOOKBACK_LIMIT = 1000;
+
+// Pages backward through a channel's history (newest first, 100 at a time)
+// looking for a message matching WEEK_LABEL_RE. Stops at the first match,
+// once SEED_LOOKBACK_LIMIT messages have been scanned, or once the start
+// of the channel is reached (a page shorter than requested).
+async function findWeekLabelMessage(channelId) {
+  let before;
+  let scanned = 0;
+
+  while (scanned < SEED_LOOKBACK_LIMIT) {
+    const messages = await discord.getRecentMessages(channelId, 100, before);
+    if (messages.length === 0) return null;
+
+    const match = messages.find((m) => WEEK_LABEL_RE.test((m.content || '').trim()));
+    if (match) return match;
+
+    scanned += messages.length;
+    if (messages.length < 100) return null;
+    before = messages[messages.length - 1].id;
+  }
+
+  return null;
+}
+
 // For channels the bot isn't already tracking (e.g. a human posted this
 // week's date-range message before the bot ever ran there), find the most
 // recent message that looks like "9/13-9/19" and adopt it, so scoring
 // picks up reactions already on it. Never overwrites a channel that's
-// already tracked.
+// already tracked. Posts a summary to the results channel so a channel
+// that couldn't be matched doesn't fail silently.
 async function seedTrackedMessages() {
-  const { goalChannels } = await getChannels();
+  const { goalChannels, resultsChannel } = await getChannels();
   const state = loadState();
   const seeded = [];
   const alreadyTracked = [];
@@ -324,8 +354,7 @@ async function seedTrackedMessages() {
       continue;
     }
 
-    const messages = await discord.getRecentMessages(channel.id, 25);
-    const match = messages.find((m) => WEEK_LABEL_RE.test((m.content || '').trim()));
+    const match = await findWeekLabelMessage(channel.id);
     if (!match) {
       noMatch.push(channel.name);
       continue;
@@ -337,7 +366,26 @@ async function seedTrackedMessages() {
   }
 
   saveState(state);
+  await discord.sendMessage(resultsChannel.id, buildSeedSummary(seeded, alreadyTracked, noMatch));
   return { seeded, alreadyTracked, noMatch };
+}
+
+function buildSeedSummary(seeded, alreadyTracked, noMatch) {
+  if (seeded.length === 0 && alreadyTracked.length === 0 && noMatch.length === 0) {
+    return 'Seed: no goal channels found.';
+  }
+
+  const lines = ['**Seed results**'];
+  if (seeded.length > 0) {
+    lines.push(`Seeded: ${seeded.map((s) => `${s.channel} (${s.weekLabel})`).join(', ')}`);
+  }
+  if (alreadyTracked.length > 0) {
+    lines.push(`Already tracked, left alone: ${alreadyTracked.join(', ')}`);
+  }
+  if (noMatch.length > 0) {
+    lines.push(`⚠️ No matching "M/D-M/D" message found: ${noMatch.join(', ')}`);
+  }
+  return lines.join('\n');
 }
 
 // Sums points from every tracked-emoji reaction on the message, from any

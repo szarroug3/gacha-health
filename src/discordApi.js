@@ -46,8 +46,9 @@ function getMessage(channelId, messageId) {
   return discordFetch(`/channels/${channelId}/messages/${messageId}`);
 }
 
-function getRecentMessages(channelId, limit = 25) {
-  return discordFetch(`/channels/${channelId}/messages?limit=${limit}`);
+function getRecentMessages(channelId, limit = 25, before) {
+  const query = new URLSearchParams({ limit: String(limit), ...(before ? { before } : {}) });
+  return discordFetch(`/channels/${channelId}/messages?${query}`);
 }
 
 // Edits the placeholder ("thinking...") response Discord shows after a
