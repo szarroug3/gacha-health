@@ -2,91 +2,91 @@
   "channels": {
     "1548879456461127821": {
       "name": "brooke",
-      "lastMessageId": "1553715455871553677",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 4,
-      "lifetimeGained": 4,
-      "creditedMessageId": "1551121462931361833"
+      "lastMessageId": "1556260812685844532",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 15,
+      "lifetimeGained": 15,
+      "creditedMessageId": "1553715455871553677"
     },
     "1548879424190029925": {
       "name": "dance",
-      "lastMessageId": "1553715456869662801",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 11,
-      "lifetimeGained": 11,
-      "creditedMessageId": "1551121463883595830"
-    },
-    "1548879440610730004": {
-      "name": "drew",
-      "lastMessageId": "1553715458425888769",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 13,
-      "lifetimeGained": 13,
-      "creditedMessageId": "1551121464617340991"
-    },
-    "1548879135659532299": {
-      "name": "fallon",
-      "lastMessageId": "1553715461005377671",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 14,
-      "lifetimeGained": 14,
-      "creditedMessageId": "1551121465829630073"
-    },
-    "1548878777008783390": {
-      "name": "lacey",
-      "lastMessageId": "1553715462586765352",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 14,
-      "lifetimeGained": 14,
-      "creditedMessageId": "1551121467188580414"
-    },
-    "1548879473556852897": {
-      "name": "michael-y",
-      "lastMessageId": "1553715463928815657",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 5,
-      "lifetimeGained": 5,
-      "creditedMessageId": "1551121467989696524"
-    },
-    "1548896739212132382": {
-      "name": "michael-w",
-      "lastMessageId": "1553715464792842292",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 7,
-      "lifetimeGained": 7,
-      "creditedMessageId": "1551121471160459447"
-    },
-    "1548879108807594064": {
-      "name": "nick",
-      "lastMessageId": "1553715466352992368",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 7,
-      "lifetimeGained": 7,
-      "creditedMessageId": "1551121472020291636"
-    },
-    "1548886795360542771": {
-      "name": "rowan",
-      "lastMessageId": "1553715467242315826",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 12,
-      "lifetimeGained": 12,
-      "creditedMessageId": "1551121472569741333"
-    },
-    "1548879405319852083": {
-      "name": "sam-z",
-      "lastMessageId": "1553715468123111535",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 17,
-      "lifetimeGained": 17,
-      "creditedMessageId": "1551121473291161651"
+      "lastMessageId": "1556260813428363318",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 22,
+      "lifetimeGained": 22,
+      "creditedMessageId": "1553715456869662801"
     },
     "1553225390103724173": {
       "name": "devin",
-      "lastMessageId": "1553715468874027190",
-      "weekLabel": "9/27 - 10/3",
-      "totalPoints": 10,
-      "lifetimeGained": 10,
-      "creditedMessageId": "1553240720402550835"
+      "lastMessageId": "1556260814581792768",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 20,
+      "lifetimeGained": 20,
+      "creditedMessageId": "1553715468874027190"
+    },
+    "1548879440610730004": {
+      "name": "drew",
+      "lastMessageId": "1556260815944818709",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 19,
+      "lifetimeGained": 19,
+      "creditedMessageId": "1553715458425888769"
+    },
+    "1548879135659532299": {
+      "name": "fallon",
+      "lastMessageId": "1556260816741736512",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 22,
+      "lifetimeGained": 22,
+      "creditedMessageId": "1553715461005377671"
+    },
+    "1548878777008783390": {
+      "name": "lacey",
+      "lastMessageId": "1556260818650398772",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 22,
+      "lifetimeGained": 22,
+      "creditedMessageId": "1553715462586765352"
+    },
+    "1548879473556852897": {
+      "name": "michael-y",
+      "lastMessageId": "1556260819237474367",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 11,
+      "lifetimeGained": 11,
+      "creditedMessageId": "1553715463928815657"
+    },
+    "1548896739212132382": {
+      "name": "michael-w",
+      "lastMessageId": "1556260820428660797",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 12,
+      "lifetimeGained": 12,
+      "creditedMessageId": "1553715464792842292"
+    },
+    "1548879108807594064": {
+      "name": "nick",
+      "lastMessageId": "1556260821284290635",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 9,
+      "lifetimeGained": 9,
+      "creditedMessageId": "1553715466352992368"
+    },
+    "1548886795360542771": {
+      "name": "rowan",
+      "lastMessageId": "1556260822983118909",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 15,
+      "lifetimeGained": 15,
+      "creditedMessageId": "1553715467242315826"
+    },
+    "1548879405319852083": {
+      "name": "sam-z",
+      "lastMessageId": "1556260824107196469",
+      "weekLabel": "10/4 - 10/10",
+      "totalPoints": 22,
+      "lifetimeGained": 22,
+      "creditedMessageId": "1553715468123111535"
     },
     "1548878935679303730": {
       "name": "batsy",
@@ -97,6 +97,7 @@
   "liveChannelIds": [
     "1548879456461127821",
     "1548879424190029925",
+    "1553225390103724173",
     "1548879440610730004",
     "1548879135659532299",
     "1548878777008783390",
@@ -104,7 +105,6 @@
     "1548896739212132382",
     "1548879108807594064",
     "1548886795360542771",
-    "1548879405319852083",
-    "1553225390103724173"
+    "1548879405319852083"
   ]
 }
