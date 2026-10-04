@@ -12,9 +12,10 @@
       "name": "dance",
       "lastMessageId": "1556260813428363318",
       "weekLabel": "10/4 - 10/10",
-      "totalPoints": 22,
+      "totalPoints": 20,
       "lifetimeGained": 22,
-      "creditedMessageId": "1553715456869662801"
+      "creditedMessageId": "1553715456869662801",
+      "lifetimeSpent": 2
     },
     "1553225390103724173": {
       "name": "devin",
